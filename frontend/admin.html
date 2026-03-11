@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - EcoWallet</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body class="dashboard-page admin-page">
+    <nav class="dash-nav">
+        <div class="container dash-nav-inner">
+            <div class="dash-brand">
+                <span class="brand-mark" aria-hidden="true">
+                    <svg viewBox="0 0 32 32" role="img" aria-hidden="true">
+                        <path d="M26 6c-8 1-14 5-18 12-2 4-2 8-2 12 5-1 9-3 13-6 6-4 8-10 7-18z" fill="#E8F4E2"/>
+                        <path d="M8 26c6-2 12-6 16-12" fill="none" stroke="#0E3B21" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                </span>
+                <div class="dash-brand-text">
+                    <span class="dash-brand-title">EcoWallet Admin</span>
+                    <span class="dash-brand-subtitle">Operations Console</span>
+                </div>
+            </div>
+            <div class="dash-actions">
+                <div class="dash-avatar" aria-hidden="true"></div>
+                <span class="dash-user-name" id="userName"></span>
+                <a href="#" id="logoutBtn" class="btn btn-ghost btn-pill btn-sm">Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container admin-layout">
+        <div class="dash-card admin-hero">
+            <div>
+                <h1>Admin Dashboard</h1>
+                <p>Monitor platform performance, approvals, and team operations.</p>
+            </div>
+        </div>
+
+        <div class="dash-card">
+            <div class="card-title">Platform Snapshot</div>
+            <div class="admin-metrics">
+                <div class="admin-metric">
+                    <span>Total Users</span>
+                    <strong id="totalUsers">0</strong>
+                </div>
+                <div class="admin-metric">
+                    <span>Active Agents</span>
+                    <strong id="totalAgents">0</strong>
+                </div>
+                <div class="admin-metric">
+                    <span>Total Waste</span>
+                    <strong id="totalWaste">0 kg</strong>
+                </div>
+                <div class="admin-metric">
+                    <span>Total CO2 Saved</span>
+                    <strong id="totalCO2">0 kg</strong>
+                </div>
+                <div class="admin-metric">
+                    <span>Total Payouts</span>
+                    <strong id="totalPayouts">0</strong>
+                </div>
+                <div class="admin-metric">
+                    <span>Pending Withdrawals</span>
+                    <strong id="pendingWithdrawals">0</strong>
+                </div>
+            </div>
+        </div>
+
+        <div class="dash-card">
+            <div class="admin-tabs">
+                <button class="tab-btn active" data-tab="withdrawals">Withdrawals</button>
+                <button class="tab-btn" data-tab="submissions">Submissions</button>
+                <button class="tab-btn" data-tab="users">Users</button>
+                <button class="tab-btn" data-tab="manage">Manage</button>
+            </div>
+
+            <div id="withdrawals-tab" class="tab-content active">
+                <h2>Pending Withdrawal Requests</h2>
+                <div id="noWithdrawals" class="empty-state" style="display: none;">
+                    <p>No pending withdrawal requests.</p>
+                </div>
+                <div class="table-responsive">
+                    <table class="dash-table">
+                        <thead>
+                            <tr>
+                                <th>User</th>
+                                <th>Amount</th>
+                                <th>Method</th>
+                                <th>Details</th>
+                                <th>Requested</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="withdrawalsBody">
+                            <tr>
+                                <td colspan="6" style="text-align: center; color: #999;">Loading requests...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="submissions-tab" class="tab-content">
+                <h2>Recent Waste Submissions</h2>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="submissionStatus">Filter by Status:</label>
+                        <select id="submissionStatus">
+                            <option value="">All</option>
+                            <option value="pending">Pending</option>
+                            <option value="collected">Collected</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table class="dash-table">
+                        <thead>
+                            <tr>
+                                <th>User</th>
+                                <th>Material</th>
+                                <th>Weight (kg)</th>
+                                <th>Payout</th>
+                                <th>CO2 Saved (kg)</th>
+                                <th>Status</th>
+                                <th>Agent</th>
+                                <th>Date</th>
+                            </tr>
+                        </thead>
+                        <tbody id="submissionsTableBody">
+                            <tr>
+                                <td colspan="8" style="text-align: center; color: #999;">Loading submissions...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="users-tab" class="tab-content">
+                <h2>Platform Users</h2>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="userRole">Filter by Role:</label>
+                        <select id="userRole">
+                            <option value="">All Users</option>
+                            <option value="user">Regular Users</option>
+                            <option value="agent">Agents</option>
+                            <option value="admin">Admins</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table class="dash-table">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Email</th>
+                                <th>State</th>
+                                <th>Role</th>
+                                <th>Status</th>
+                                <th>Joined</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="usersBody">
+                            <tr>
+                                <td colspan="7" style="text-align: center; color: #999;">Loading users...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="manage-tab" class="tab-content">
+                <h2>Manage Platform</h2>
+
+                <div class="form-section">
+                    <h3>Create Agent Account</h3>
+                    <form id="createAgentForm" class="form">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="agentName">Full Name</label>
+                                <input type="text" id="agentName" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="agentEmail">Email</label>
+                                <input type="email" id="agentEmail" required>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="agentPassword">Password</label>
+                                <input type="password" id="agentPassword" required minlength="6">
+                            </div>
+                            <div class="form-group">
+                                <label for="agentState">State</label>
+                                <input type="text" id="agentState" required>
+                            </div>
+                        </div>
+                        <div id="agentMessage" class="form-message" style="display: none;"></div>
+                        <button type="submit" class="btn btn-primary btn-pill">Create Agent</button>
+                    </form>
+                </div>
+
+                <div class="form-section">
+                    <h3>Create Admin Account</h3>
+                    <form id="createAdminForm" class="form">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="adminName">Full Name</label>
+                                <input type="text" id="adminName" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="adminEmail">Email</label>
+                                <input type="email" id="adminEmail" required>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="adminPassword">Password</label>
+                                <input type="password" id="adminPassword" required minlength="6">
+                            </div>
+                            <div class="form-group">
+                                <label for="adminState">State</label>
+                                <input type="text" id="adminState" required>
+                            </div>
+                        </div>
+                        <div id="adminMessage" class="form-message" style="display: none;"></div>
+                        <button type="submit" class="btn btn-primary btn-pill">Create Admin</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="js/api.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/admin.js"></script>
+</body>
+</html>

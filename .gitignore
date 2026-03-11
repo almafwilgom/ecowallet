@@ -1,0 +1,11 @@
+# Local editor settings
+.vscode/settings.json
+
+# Node
+node_modules/
+
+# Env
+.env
+
+# Logs
+*.log

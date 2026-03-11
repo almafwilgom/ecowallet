@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - EcoWallet</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+</head>
+<body class="dashboard-page">
+    <nav class="dash-nav">
+        <div class="container dash-nav-inner">
+            <div class="dash-brand">
+                <span class="brand-mark" aria-hidden="true">
+                    <svg viewBox="0 0 32 32" role="img" aria-hidden="true">
+                        <path d="M26 6c-8 1-14 5-18 12-2 4-2 8-2 12 5-1 9-3 13-6 6-4 8-10 7-18z" fill="#E8F4E2"/>
+                        <path d="M8 26c6-2 12-6 16-12" fill="none" stroke="#0E3B21" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                </span>
+                <div class="dash-brand-text">
+                    <span class="dash-brand-title">EcoWallet</span>
+                    <span class="dash-brand-subtitle">Recycle & Earn Rewards</span>
+                </div>
+            </div>
+            <div class="dash-actions">
+                <button class="dash-icon-btn" aria-label="Notifications">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M12 3a5 5 0 0 1 5 5v2.1c0 .7.2 1.4.6 2l1.4 2.3a1 1 0 0 1-.9 1.5H5.9a1 1 0 0 1-.9-1.5l1.4-2.3c.4-.6.6-1.3.6-2V8a5 5 0 0 1 5-5z" fill="none" stroke="currentColor" stroke-width="1.6"/>
+                        <path d="M9.5 19a2.5 2.5 0 0 0 5 0" fill="none" stroke="currentColor" stroke-width="1.6"/>
+                    </svg>
+                </button>
+                <div class="dash-avatar" aria-hidden="true"></div>
+                <span class="dash-user-name" id="userName"></span>
+                <a href="#" id="logoutBtn" class="btn btn-ghost btn-pill btn-sm">Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container dash-layout">
+        <section class="dash-column dash-primary">
+            <div class="dash-card welcome-card">
+                <div class="welcome-header">
+                    <div>
+                        <h1>Welcome, <span id="welcomeName">Recycler</span>!</h1>
+                        <p>Track your rewards and impact in one place.</p>
+                    </div>
+                </div>
+                <div class="metrics-row">
+                    <div class="metric-tile metric-balance">
+                        <span class="metric-label">Wallet Balance</span>
+                        <span class="metric-value" id="walletBalance">0.00</span>
+                    </div>
+                    <div class="metric-tile metric-recycled">
+                        <span class="metric-label">Total Recycled</span>
+                        <span class="metric-value" id="totalWaste">0 kg</span>
+                    </div>
+                    <div class="metric-tile metric-co2">
+                        <span class="metric-label">CO2 Saved</span>
+                        <span class="metric-value" id="totalCO2">0 kg</span>
+                        <span class="metric-note">Keep it going</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="dash-card submit-card">
+                <div class="card-title">Submit Recyclable Waste</div>
+                <div class="submit-grid">
+                    <form id="wasteForm" class="dash-form">
+                        <div class="form-group">
+                            <label for="material">Material Type</label>
+                            <select id="material" name="material" required>
+                                <option value="">-- Select Material --</option>
+                                <option value="PET">PET (450/kg)</option>
+                                <option value="HDPE">HDPE (420/kg)</option>
+                                <option value="Aluminum">Aluminum (1200/kg)</option>
+                                <option value="Paper">Paper (150/kg)</option>
+                            </select>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="weight">Weight (kg)</label>
+                                <input type="number" id="weight" name="weight" placeholder="0.5" min="0.1" step="0.1" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="location">Location</label>
+                                <input type="text" id="location" name="location" placeholder="Your location" required>
+                            </div>
+                        </div>
+
+                        <div id="formMessage" class="form-message" style="display: none;"></div>
+
+                        <button type="submit" class="btn btn-primary btn-pill">Submit</button>
+                    </form>
+
+                    <div class="chart-panel compact">
+                        <h3>Materials Breakdown</h3>
+                        <div class="chart-canvas">
+                            <canvas id="materialChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="dash-card">
+                <div class="card-title">Recycling Activity</div>
+                <div class="chart-canvas tall">
+                    <canvas id="recyclingChart"></canvas>
+                </div>
+            </div>
+
+            <div class="dash-card">
+                <div class="card-title">Request Withdrawal</div>
+                <form id="withdrawalForm" class="dash-form">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="withdrawAmount">Amount</label>
+                            <input type="number" id="withdrawAmount" name="amount" placeholder="1000" min="100" step="100" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="withdrawMethod">Method</label>
+                            <select id="withdrawMethod" name="method" required>
+                                <option value="">-- Select Method --</option>
+                                <option value="airtime">Airtime</option>
+                                <option value="mobile_data">Mobile Data</option>
+                                <option value="bank_transfer">Bank Transfer</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group" id="phoneGroup" style="display: none;">
+                        <label for="phoneNumber">Phone Number</label>
+                        <input type="tel" id="phoneNumber" name="phone_number" placeholder="08012345678">
+                    </div>
+
+                    <div class="form-group" id="networkGroup" style="display: none;">
+                        <label for="networkType">Network Type</label>
+                        <select id="networkType" name="network_type">
+                            <option value="">-- Select Network --</option>
+                            <option value="MTN">MTN</option>
+                            <option value="Airtel">Airtel</option>
+                            <option value="Glo">Glo</option>
+                            <option value="9mobile">9mobile</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group" id="bankGroup" style="display: none;">
+                        <label for="bankAccount">Bank Account Number</label>
+                        <input type="text" id="bankAccount" name="bank_account" placeholder="0123456789">
+                        <label for="accountName">Account Name</label>
+                        <input type="text" id="accountName" name="account_name" placeholder="Account holder name">
+                        <label for="bankName">Bank Name</label>
+                        <input type="text" id="bankName" name="bank_name" placeholder="Bank name">
+                    </div>
+
+                    <div id="withdrawMessage" class="form-message" style="display: none;"></div>
+
+                    <button type="submit" class="btn btn-primary btn-pill">Request Withdrawal</button>
+                </form>
+            </div>
+        </section>
+
+        <aside class="dash-column dash-secondary">
+            <div class="dash-card">
+                <div class="card-title">Top 10 Recyclers</div>
+                <div class="table-responsive">
+                    <table class="dash-table dash-leaderboard">
+                        <thead>
+                            <tr>
+                                <th>Rank</th>
+                                <th>User</th>
+                                <th>Waste Recycled</th>
+                                <th>CO2 Saved</th>
+                            </tr>
+                        </thead>
+                        <tbody id="leaderboardBody">
+                            <tr>
+                                <td colspan="4" style="text-align: center; color: #999;">Loading leaderboard...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="dash-card">
+                <div class="card-title">CO2 Savings</div>
+                <div class="chart-canvas">
+                    <canvas id="co2Chart"></canvas>
+                </div>
+            </div>
+
+            <div class="dash-card">
+                <div class="card-title">Recent Activity</div>
+                <div class="table-responsive">
+                    <table class="dash-table dash-activity">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Material</th>
+                                <th>Weight (kg)</th>
+                                <th>Reward</th>
+                                <th>CO2 Saved (kg)</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="activityBody">
+                            <tr>
+                                <td colspan="6" style="text-align: center; color: #999;">Loading activity...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </aside>
+    </main>
+
+    <script src="js/api.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/dashboard.js"></script>
+</body>
+</html>

@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agent Dashboard - EcoWallet</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="container">
+            <div class="navbar-brand">
+                <h1>🌱 EcoWallet Agent</h1>
+            </div>
+            <div class="navbar-menu">
+                <span class="user-name" id="userName"></span>
+                <a href="#" id="logoutBtn" class="btn btn-outline btn-sm">Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Agent Dashboard Container -->
+    <div class="dashboard-container">
+        <h1>Agent Dashboard</h1>
+
+        <!-- Agent Metrics -->
+        <div class="metrics-grid">
+            <div class="metric-card">
+                <div class="metric-icon">📦</div>
+                <div class="metric-content">
+                    <h3>Total Collections</h3>
+                    <p class="metric-value" id="totalCollections">0</p>
+                </div>
+            </div>
+
+            <div class="metric-card">
+                <div class="metric-icon">⚖️</div>
+                <div class="metric-content">
+                    <h3>Total Weight Collected</h3>
+                    <p class="metric-value" id="totalWeightCollected">0 kg</p>
+                </div>
+            </div>
+
+            <div class="metric-card">
+                <div class="metric-icon">🌍</div>
+                <div class="metric-content">
+                    <h3>CO₂ Prevented</h3>
+                    <p class="metric-value" id="totalCO2Prevented">0 kg</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pending Submissions Section -->
+        <div class="table-section">
+            <h2>Pending Waste Submissions</h2>
+            <div id="noSubmissions" class="empty-state" style="display: none;">
+                <p>No pending submissions at the moment.</p>
+            </div>
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>User</th>
+                            <th>Material</th>
+                            <th>Weight (kg)</th>
+                            <th>Location</th>
+                            <th>Payout (₦)</th>
+                            <th>Submitted</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="submissionsBody">
+                        <tr>
+                            <td colspan="7" style="text-align: center; color: #999;">Loading submissions...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Collected Submissions History -->
+        <div class="table-section">
+            <h2>Collected Submissions History</h2>
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>User</th>
+                            <th>Material</th>
+                            <th>Weight (kg)</th>
+                            <th>Payout (₦)</th>
+                            <th>CO₂ Saved (kg)</th>
+                            <th>Collected</th>
+                        </tr>
+                    </thead>
+                    <tbody id="collectedBody">
+                        <tr>
+                            <td colspan="6" style="text-align: center; color: #999;">Loading history...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/api.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/agent.js"></script>
+</body>
+</html>
