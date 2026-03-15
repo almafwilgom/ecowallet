@@ -2,6 +2,8 @@
 document.addEventListener('DOMContentLoaded', () => {
     const loginForm = document.getElementById('loginForm');
     const registerForm = document.getElementById('registerForm');
+    const resetRequestForm = document.getElementById('resetRequestForm');
+    const resetConfirmForm = document.getElementById('resetConfirmForm');
 
     if (loginForm) {
         loginForm.addEventListener('submit', handleLogin);
@@ -10,7 +12,37 @@ document.addEventListener('DOMContentLoaded', () => {
     if (registerForm) {
         registerForm.addEventListener('submit', handleRegister);
     }
+
+    if (resetRequestForm) {
+        resetRequestForm.addEventListener('submit', handlePasswordResetRequest);
+    }
+
+    if (resetConfirmForm) {
+        resetConfirmForm.addEventListener('submit', handlePasswordResetConfirm);
+    }
+
+    initGoogleLogin();
+    preloadResetToken();
 });
+
+function handleAuthSuccess(result) {
+    if (!result || !result.token || !result.user) {
+        throw new Error('Invalid login response');
+    }
+
+    localStorage.setItem('token', result.token);
+    localStorage.setItem('user', JSON.stringify(result.user));
+
+    setTimeout(() => {
+        if (result.user.role === 'admin') {
+            window.location.href = 'admin.html';
+        } else if (result.user.role === 'agent') {
+            window.location.href = 'agent.html';
+        } else {
+            window.location.href = 'dashboard.html';
+        }
+    }, 300);
+}
 
 async function handleLogin(e) {
     e.preventDefault();
@@ -30,21 +62,7 @@ async function handleLogin(e) {
         }
 
         const result = await authAPI.login({ email, password });
-
-        // Store token
-        localStorage.setItem('token', result.token);
-        localStorage.setItem('user', JSON.stringify(result.user));
-
-        // Redirect based on role
-        setTimeout(() => {
-            if (result.user.role === 'admin') {
-                window.location.href = 'admin.html';
-            } else if (result.user.role === 'agent') {
-                window.location.href = 'agent.html';
-            } else {
-                window.location.href = 'dashboard.html';
-            }
-        }, 500);
+        handleAuthSuccess(result);
     } catch (error) {
         errorDiv.textContent = 'Error: ' + error.message;
         errorDiv.style.display = 'block';
@@ -87,6 +105,156 @@ async function handleRegister(e) {
         errorDiv.style.display = 'block';
         submitBtn.disabled = false;
         submitBtn.textContent = 'Register';
+    }
+}
+
+async function handlePasswordResetRequest(e) {
+    e.preventDefault();
+    const errorDiv = document.getElementById('errorMessage');
+    const successDiv = document.getElementById('successMessage');
+    const submitBtn = e.target.querySelector('button[type="submit"]');
+
+    try {
+        errorDiv.style.display = 'none';
+        if (successDiv) successDiv.style.display = 'none';
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Sending Link...';
+
+        const email = document.getElementById('email').value.trim();
+
+        if (!email) {
+            throw new Error('Email is required');
+        }
+
+        await authAPI.requestPasswordReset({ email });
+
+        if (successDiv) {
+            successDiv.textContent = 'If the account exists, a reset link has been sent.';
+            successDiv.style.display = 'block';
+        }
+    } catch (error) {
+        errorDiv.textContent = 'Error: ' + error.message;
+        errorDiv.style.display = 'block';
+    } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Send Reset Link';
+    }
+}
+
+async function handlePasswordResetConfirm(e) {
+    e.preventDefault();
+    const errorDiv = document.getElementById('errorMessage');
+    const successDiv = document.getElementById('successMessage');
+    const submitBtn = e.target.querySelector('button[type="submit"]');
+
+    try {
+        errorDiv.style.display = 'none';
+        if (successDiv) successDiv.style.display = 'none';
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Resetting...';
+
+        const tokenInput = document.getElementById('resetToken');
+        const password = document.getElementById('password').value;
+        const confirmPassword = document.getElementById('confirmPassword').value;
+
+        const token = tokenInput ? tokenInput.value.trim() : '';
+
+        if (!token || !password || !confirmPassword) {
+            throw new Error('All fields are required');
+        }
+
+        if (password.length < 6) {
+            throw new Error('Password must be at least 6 characters');
+        }
+
+        if (password !== confirmPassword) {
+            throw new Error('Passwords do not match');
+        }
+
+        await authAPI.confirmPasswordReset({ token, password });
+
+        if (successDiv) {
+            successDiv.textContent = 'Password reset successful. Redirecting to login...';
+            successDiv.style.display = 'block';
+        }
+
+        setTimeout(() => {
+            window.location.href = 'login.html';
+        }, 1200);
+    } catch (error) {
+        errorDiv.textContent = 'Error: ' + error.message;
+        errorDiv.style.display = 'block';
+    } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Reset Password';
+    }
+}
+
+function getGoogleClientId() {
+    return window.ECOWALLET_GOOGLE_CLIENT_ID || localStorage.getItem('ecowalletGoogleClientId');
+}
+
+function initGoogleLogin() {
+    const googleButton = document.getElementById('googleLoginButton');
+    const googleClientId = getGoogleClientId();
+
+    if (!googleButton) return;
+
+    if (!googleClientId) {
+        googleButton.innerHTML = '<span>Google login is not configured.</span>';
+        googleButton.classList.add('google-disabled');
+        return;
+    }
+
+    const loadButton = () => {
+        if (!window.google || !window.google.accounts || !window.google.accounts.id) {
+            setTimeout(loadButton, 300);
+            return;
+        }
+
+        window.google.accounts.id.initialize({
+            client_id: googleClientId,
+            callback: handleGoogleCredentialResponse
+        });
+
+        window.google.accounts.id.renderButton(googleButton, {
+            theme: 'outline',
+            size: 'large',
+            text: 'continue_with',
+            shape: 'pill',
+            width: 280
+        });
+    };
+
+    loadButton();
+}
+
+async function handleGoogleCredentialResponse(response) {
+    const errorDiv = document.getElementById('errorMessage');
+
+    try {
+        if (!response?.credential) {
+            throw new Error('Google login failed');
+        }
+
+        const result = await authAPI.loginWithGoogle({ credential: response.credential });
+        handleAuthSuccess(result);
+    } catch (error) {
+        if (errorDiv) {
+            errorDiv.textContent = 'Error: ' + error.message;
+            errorDiv.style.display = 'block';
+        }
+    }
+}
+
+function preloadResetToken() {
+    const tokenInput = document.getElementById('resetToken');
+    if (!tokenInput) return;
+
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get('token');
+    if (token) {
+        tokenInput.value = token;
     }
 }
 

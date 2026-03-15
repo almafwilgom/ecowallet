@@ -12,8 +12,10 @@ CREATE TABLE users (
     password VARCHAR(255) NOT NULL,
     state VARCHAR(100),
     role VARCHAR(50) DEFAULT 'user',
+    google_id VARCHAR(255) UNIQUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    deleted_at TIMESTAMP DEFAULT NULL
 );
 
 -- Wallets table
@@ -57,6 +59,17 @@ CREATE TABLE withdrawal_requests (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
+-- Password reset tokens
+CREATE TABLE password_resets (
+    id SERIAL PRIMARY KEY,
+    user_id INT NOT NULL,
+    token_hash VARCHAR(255) NOT NULL,
+    expires_at TIMESTAMP NOT NULL,
+    used_at TIMESTAMP DEFAULT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
 -- Create indexes for better query performance
 CREATE INDEX idx_waste_submissions_user_id ON waste_submissions(user_id);
 CREATE INDEX idx_waste_submissions_status ON waste_submissions(status);
@@ -66,6 +79,10 @@ CREATE INDEX idx_withdrawal_requests_status ON withdrawal_requests(status);
 CREATE INDEX idx_wallets_user_id ON wallets(user_id);
 CREATE INDEX idx_users_email ON users(email);
 CREATE INDEX idx_users_role ON users(role);
+CREATE UNIQUE INDEX idx_users_google_id ON users(google_id);
+CREATE UNIQUE INDEX idx_password_resets_token ON password_resets(token_hash);
+CREATE INDEX idx_password_resets_user ON password_resets(user_id);
+CREATE INDEX idx_password_resets_expires ON password_resets(expires_at);
 
 -- Create views for analytics
 CREATE VIEW user_stats AS

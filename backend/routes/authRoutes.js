@@ -5,6 +5,9 @@ const authMiddleware = require('../middleware/authMiddleware');
 
 router.post('/register', authController.register);
 router.post('/login', authController.login);
+router.post('/google', authController.googleLogin);
+router.post('/password-reset/request', authController.requestPasswordReset);
+router.post('/password-reset/confirm', authController.confirmPasswordReset);
 router.get('/me', authMiddleware, authController.getCurrentUser);
 
 module.exports = router;

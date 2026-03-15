@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -11,12 +11,22 @@
     <nav class="navbar">
         <div class="container">
             <div class="navbar-brand">
-                <h1>🌱 EcoWallet Agent</h1>
+                <a class="brand" href="index.html" aria-label="EcoWallet Home">
+                    <img class="brand-logo brand-logo--full" src="assets/ecowallet-logo.png" alt="EcoWallet logo">
+                    <span class="brand-text">EcoWallet</span>
+                </a>
             </div>
             <div class="navbar-menu">
                 <span class="user-name" id="userName"></span>
+                <a href="services.html" class="nav-link">Services</a>
+                <a href="about.html" class="nav-link">About</a>
                 <a href="#" id="logoutBtn" class="btn btn-outline btn-sm">Logout</a>
             </div>
+            <button class="navbar-toggle" id="navbar-toggle" aria-label="Toggle navigation">
+                <span class="bar"></span>
+                <span class="bar"></span>
+                <span class="bar"></span>
+            </button>
         </div>
     </nav>
 
@@ -27,7 +37,7 @@
         <!-- Agent Metrics -->
         <div class="metrics-grid">
             <div class="metric-card">
-                <div class="metric-icon">📦</div>
+                <div class="metric-icon">Collections</div>
                 <div class="metric-content">
                     <h3>Total Collections</h3>
                     <p class="metric-value" id="totalCollections">0</p>
@@ -35,7 +45,7 @@
             </div>
 
             <div class="metric-card">
-                <div class="metric-icon">⚖️</div>
+                <div class="metric-icon">Weight</div>
                 <div class="metric-content">
                     <h3>Total Weight Collected</h3>
                     <p class="metric-value" id="totalWeightCollected">0 kg</p>
@@ -43,9 +53,9 @@
             </div>
 
             <div class="metric-card">
-                <div class="metric-icon">🌍</div>
+                <div class="metric-icon">CO2</div>
                 <div class="metric-content">
-                    <h3>CO₂ Prevented</h3>
+                    <h3>CO2 Prevented</h3>
                     <p class="metric-value" id="totalCO2Prevented">0 kg</p>
                 </div>
             </div>
@@ -65,7 +75,7 @@
                             <th>Material</th>
                             <th>Weight (kg)</th>
                             <th>Location</th>
-                            <th>Payout (₦)</th>
+                            <th>Payout (â‚¦)</th>
                             <th>Submitted</th>
                             <th>Action</th>
                         </tr>
@@ -89,8 +99,8 @@
                             <th>User</th>
                             <th>Material</th>
                             <th>Weight (kg)</th>
-                            <th>Payout (₦)</th>
-                            <th>CO₂ Saved (kg)</th>
+                            <th>Payout (â‚¦)</th>
+                            <th>COâ‚‚ Saved (kg)</th>
                             <th>Collected</th>
                         </tr>
                     </thead>
@@ -106,6 +116,8 @@
 
     <script src="js/api.js"></script>
     <script src="js/auth.js"></script>
+    <script src="js/nav.js"></script>
     <script src="js/agent.js"></script>
 </body>
 </html>
+

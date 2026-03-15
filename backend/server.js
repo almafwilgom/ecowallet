@@ -16,8 +16,40 @@ const PORT = process.env.PORT || 3001;
 
 // Middleware
 app.use(helmet());
+
+const isLocalhostOrigin = (origin) => {
+    if (!origin) return false;
+    return /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin);
+};
+
+const allowedOrigins = [
+    process.env.FRONTEND_URL,
+    'http://localhost:5500',
+    'http://localhost:8080',
+    'http://127.0.0.1:5500',
+    'http://127.0.0.1:8080'
+].filter(Boolean);
+
+const allowNullOrigin = process.env.NODE_ENV !== 'production';
+
 app.use(cors({
-    origin: ['http://localhost:5500', 'http://localhost:8080', 'http://127.0.0.1:5500', 'http://127.0.0.1:8080'],
+    origin: (origin, callback) => {
+        if (!origin) {
+            return allowNullOrigin
+                ? callback(null, true)
+                : callback(new Error('Not allowed by CORS'));
+        }
+
+        if (allowedOrigins.includes(origin)) {
+            return callback(null, true);
+        }
+
+        if (process.env.NODE_ENV !== 'production' && isLocalhostOrigin(origin)) {
+            return callback(null, true);
+        }
+
+        return callback(new Error('Not allowed by CORS'));
+    },
     credentials: true
 }));
 app.use(express.json());

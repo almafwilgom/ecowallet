@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -11,10 +11,15 @@
     <nav class="navbar">
         <div class="container">
             <div class="navbar-brand">
-                <h1>🌱 EcoWallet</h1>
+                <a class="brand" href="index.html" aria-label="EcoWallet Home">
+                    <img class="brand-logo brand-logo--full" src="assets/ecowallet-logo.png" alt="EcoWallet logo">
+                    <span class="brand-text">EcoWallet</span>
+                </a>
             </div>
             <div class="navbar-menu">
                 <a href="index.html" class="nav-link">Home</a>
+                <a href="services.html" class="nav-link">Services</a>
+                <a href="about.html" class="nav-link">About</a>
             </div>
             <button class="navbar-toggle" id="navbar-toggle">
                 <span class="bar"></span>
@@ -81,35 +86,20 @@
                 <button type="submit" class="btn btn-primary btn-block">Register</button>
             </form>
 
+            <div class="auth-divider"><span>or</span></div>
+            <div id="googleLoginButton" class="google-login"></div>
+
             <p class="auth-footer">
                 Already have an account? <a href="login.html">Login here</a>
             </p>
         </div>
     </div>
 
+    <script src="js/config.js"></script>
+    <script src="js/nav.js"></script>
     <script src="js/api.js"></script>
-    <script>
-        // Mobile navbar toggle functionality
-        document.addEventListener('DOMContentLoaded', function() {
-            const navbarToggle = document.getElementById('navbar-toggle');
-            const navbarMenu = document.querySelector('.navbar-menu');
-
-            if (navbarToggle && navbarMenu) {
-                navbarToggle.addEventListener('click', function() {
-                    navbarMenu.classList.toggle('active');
-                    navbarToggle.classList.toggle('active');
-                });
-
-                // Close menu when clicking outside
-                document.addEventListener('click', function(event) {
-                    if (!navbarToggle.contains(event.target) && !navbarMenu.contains(event.target)) {
-                        navbarMenu.classList.remove('active');
-                        navbarToggle.classList.remove('active');
-                    }
-                });
-            }
-        });
-    </script>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
     <script src="js/auth.js"></script>
 </body>
 </html>
+

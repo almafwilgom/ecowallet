@@ -10,18 +10,20 @@
     <nav class="navbar landing-nav">
         <div class="container landing-nav-inner">
             <a class="brand" href="index.html" aria-label="EcoWallet Home">
-                <span class="brand-mark" aria-hidden="true">
-                    <svg viewBox="0 0 32 32" role="img" aria-hidden="true">
-                        <path d="M26 6c-8 1-14 5-18 12-2 4-2 8-2 12 5-1 9-3 13-6 6-4 8-10 7-18z" fill="#E8F4E2"/>
-                        <path d="M8 26c6-2 12-6 16-12" fill="none" stroke="#0E3B21" stroke-width="2" stroke-linecap="round"/>
-                    </svg>
-                </span>
+                <img class="brand-logo brand-logo--full" src="assets/ecowallet-logo.png" alt="EcoWallet logo">
                 <span class="brand-text">EcoWallet</span>
             </a>
-            <div class="nav-actions">
+            <div class="nav-actions navbar-menu">
+                <a href="services.html" class="btn btn-ghost btn-pill">Services</a>
+                <a href="about.html" class="btn btn-ghost btn-pill">About</a>
                 <a href="login.html" class="btn btn-ghost btn-pill">Login</a>
                 <a href="register.html" class="btn btn-primary btn-pill">Get Started</a>
             </div>
+            <button class="navbar-toggle" id="navbar-toggle" aria-label="Toggle navigation">
+                <span class="bar"></span>
+                <span class="bar"></span>
+                <span class="bar"></span>
+            </button>
         </div>
     </nav>
 
@@ -158,11 +160,13 @@
         </div>
     </footer>
 
+    <script src="js/nav.js"></script>
     <script src="js/api.js"></script>
     <script>
         async function loadStats() {
             try {
-                const response = await fetch(`${API_BASE_URL}/public/stats`);
+                const apiBaseUrl = await resolveApiBaseUrl();
+                const response = await fetch(`${apiBaseUrl}/public/stats`);
                 if (!response.ok) return;
                 const data = await response.json();
                 const stats = data.stats || {};

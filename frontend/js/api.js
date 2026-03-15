@@ -1,8 +1,85 @@
 // API Configuration
-const API_BASE_URL = 'http://localhost:3002';
+function normalizeBaseUrl(value) {
+    if (!value) return '';
+    return String(value).replace(/\/+$/, '');
+}
+
+const API_BASE_URL_CANDIDATES = [
+    window.ECOWALLET_API_BASE_URL,
+    localStorage.getItem('ecowalletApiBaseUrl'),
+    'http://localhost:3002',
+    'http://localhost:3000',
+    'http://localhost:3001'
+].map(normalizeBaseUrl).filter(Boolean);
+
+const API_BASE_URLS = Array.from(new Set(API_BASE_URL_CANDIDATES));
+const DEFAULT_API_BASE_URL = API_BASE_URLS[0] || 'http://localhost:3000';
+let resolvedApiBaseUrl = null;
+
+async function probeApiBaseUrl(baseUrl) {
+    const healthUrl = `${baseUrl}/health`;
+    const hasAbortController = typeof AbortController !== 'undefined';
+    const controller = hasAbortController ? new AbortController() : null;
+    const timeoutId = controller
+        ? setTimeout(() => controller.abort(), 1200)
+        : null;
+
+    try {
+        const response = await fetch(healthUrl, {
+            method: 'GET',
+            signal: controller ? controller.signal : undefined
+        });
+        return response.ok;
+    } catch (error) {
+        return false;
+    } finally {
+        if (timeoutId) clearTimeout(timeoutId);
+    }
+}
+
+async function resolveApiBaseUrl() {
+    if (resolvedApiBaseUrl) return resolvedApiBaseUrl;
+
+    for (const baseUrl of API_BASE_URLS) {
+        if (!baseUrl) continue;
+        const ok = await probeApiBaseUrl(baseUrl);
+        if (ok) {
+            resolvedApiBaseUrl = baseUrl;
+            localStorage.setItem('ecowalletApiBaseUrl', baseUrl);
+            return resolvedApiBaseUrl;
+        }
+    }
+
+    resolvedApiBaseUrl = DEFAULT_API_BASE_URL;
+    return resolvedApiBaseUrl;
+}
+
+function isNetworkError(error) {
+    if (!error) return false;
+    const message = String(error.message || '');
+    return (
+        error.name === 'TypeError' ||
+        message.includes('Failed to fetch') ||
+        message.includes('NetworkError')
+    );
+}
+
+function buildNetworkErrorMessage(baseUrl) {
+    const hints = [];
+
+    if (window.location.protocol === 'file:') {
+        hints.push('Open the frontend via http://localhost:5500 or http://localhost:8080 (not file://).');
+    }
+
+    hints.push(`Ensure the backend is running and reachable at ${baseUrl}.`);
+    hints.push('If you changed the backend port, update the API base URL.');
+
+    return `Unable to reach the EcoWallet API. ${hints.join(' ')}`;
+}
 
 // Helper function to make API calls
 async function apiCall(endpoint, method = 'GET', body = null) {
+    const baseUrl = await resolveApiBaseUrl();
     const options = {
         method,
         headers: {
@@ -20,7 +97,7 @@ async function apiCall(endpoint, method = 'GET', body = null) {
     }
 
     try {
-        const response = await fetch(`${API_BASE_URL}${endpoint}`, options);
+        const response = await fetch(`${baseUrl}${endpoint}`, options);
         
         if (!response.ok) {
             let errorData = {};
@@ -43,6 +120,12 @@ async function apiCall(endpoint, method = 'GET', body = null) {
         return await response.json();
     } catch (error) {
         console.error('API Error:', error);
+        if (isNetworkError(error)) {
+            const friendlyMessage = buildNetworkErrorMessage(baseUrl);
+            const networkError = new Error(friendlyMessage);
+            networkError.cause = error;
+            throw networkError;
+        }
         throw error;
     }
 }
@@ -51,7 +134,10 @@ async function apiCall(endpoint, method = 'GET', body = null) {
 const authAPI = {
     register: (data) => apiCall('/auth/register', 'POST', data),
     login: (data) => apiCall('/auth/login', 'POST', data),
+    loginWithGoogle: (data) => apiCall('/auth/google', 'POST', data),
     getCurrentUser: () => apiCall('/auth/me', 'GET'),
+    requestPasswordReset: (data) => apiCall('/auth/password-reset/request', 'POST', data),
+    confirmPasswordReset: (data) => apiCall('/auth/password-reset/confirm', 'POST', data),
 };
 
 // Waste APIs
