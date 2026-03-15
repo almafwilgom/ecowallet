@@ -1,5 +1,0 @@
-{
-    "github.copilot.chat.responsesApiContextManagement.enabled": true,
-    "cursor-ai.apiKey": "",
-    "github.copilot.chat.anthropic.useMessagesApi": false
-}
