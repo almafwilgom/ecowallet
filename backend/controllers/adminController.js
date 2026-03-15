@@ -243,7 +243,7 @@ const restoreUser = (req, res) => {
     }
 };
 
-const deleteUser = (req, res) => {
+const deleteUser = async (req, res) => {
     try {
         const targetId = parseInt(req.params.id, 10);
         const requesterId = req.user?.id;
@@ -255,77 +255,23 @@ const deleteUser = (req, res) => {
             return res.status(400).json({ error: 'You cannot delete your own account' });
         }
 
-        db.serialize(() => {
-            db.run('BEGIN TRANSACTION');
+        await db.transaction(async (client) => {
+            await client.query('UPDATE waste_submissions SET agent_id = NULL WHERE agent_id = $1', [targetId]);
+            await client.query('DELETE FROM waste_submissions WHERE user_id = $1', [targetId]);
+            await client.query('DELETE FROM withdrawal_requests WHERE user_id = $1', [targetId]);
+            await client.query('DELETE FROM wallets WHERE user_id = $1', [targetId]);
 
-            db.run(
-                'UPDATE waste_submissions SET agent_id = NULL WHERE agent_id = ?',
-                [targetId],
-                function(err) {
-                    if (err) {
-                        db.run('ROLLBACK');
-                        return res.status(500).json({ error: 'Failed to detach agent submissions' });
-                    }
-
-                    db.run(
-                        'DELETE FROM waste_submissions WHERE user_id = ?',
-                        [targetId],
-                        function(err) {
-                            if (err) {
-                                db.run('ROLLBACK');
-                                return res.status(500).json({ error: 'Failed to delete submissions' });
-                            }
-
-                            db.run(
-                                'DELETE FROM withdrawal_requests WHERE user_id = ?',
-                                [targetId],
-                                function(err) {
-                                    if (err) {
-                                        db.run('ROLLBACK');
-                                        return res.status(500).json({ error: 'Failed to delete withdrawals' });
-                                    }
-
-                                    db.run(
-                                        'DELETE FROM wallets WHERE user_id = ?',
-                                        [targetId],
-                                        function(err) {
-                                            if (err) {
-                                                db.run('ROLLBACK');
-                                                return res.status(500).json({ error: 'Failed to delete wallet' });
-                                            }
-
-                                            db.run(
-                                                'DELETE FROM users WHERE id = ?',
-                                                [targetId],
-                                                function(err) {
-                                                    if (err) {
-                                                        db.run('ROLLBACK');
-                                                        return res.status(500).json({ error: 'Failed to delete user' });
-                                                    }
-
-                                                    if (this.changes === 0) {
-                                                        db.run('ROLLBACK');
-                                                        return res.status(404).json({ error: 'User not found' });
-                                                    }
-
-                                                    db.run('COMMIT', (commitErr) => {
-                                                        if (commitErr) {
-                                                            return res.status(500).json({ error: 'Failed to commit deletion' });
-                                                        }
-                                                        return res.json({ message: 'User deleted successfully' });
-                                                    });
-                                                }
-                                            );
-                                        }
-                                    );
-                                }
-                            );
-                        }
-                    );
-                }
-            );
+            const result = await client.query('DELETE FROM users WHERE id = $1', [targetId]);
+            if (result.rowCount === 0) {
+                throw new Error('NOT_FOUND');
+            }
         });
+
+        return res.json({ message: 'User deleted successfully' });
     } catch (error) {
+        if (error.message === 'NOT_FOUND') {
+            return res.status(404).json({ error: 'User not found' });
+        }
         return res.status(500).json({ error: 'Failed to delete user' });
     }
 };
