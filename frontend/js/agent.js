@@ -67,6 +67,10 @@ async function loadPendingSubmissions() {
         tbody.innerHTML = rows;
     } catch (error) {
         console.error('Error loading pending submissions:', error);
+        const tbody = document.getElementById('submissionsBody');
+        const noSubmissions = document.getElementById('noSubmissions');
+        if (noSubmissions) noSubmissions.style.display = 'none';
+        renderTableError(tbody, 7, error);
     }
 }
 
@@ -95,7 +99,23 @@ async function loadCollectedSubmissions() {
         tbody.innerHTML = rows;
     } catch (error) {
         console.error('Error loading collected submissions:', error);
+        const tbody = document.getElementById('collectedBody');
+        renderTableError(tbody, 6, error);
     }
+}
+
+function renderTableError(tbody, colSpan, error) {
+    if (!tbody) return;
+    tbody.innerHTML = '';
+
+    const tr = document.createElement('tr');
+    const td = document.createElement('td');
+    td.colSpan = colSpan;
+    td.style.textAlign = 'center';
+    td.style.color = '#B71C1C';
+    td.textContent = `Error loading data: ${error?.message || 'Unknown error'}`;
+    tr.appendChild(td);
+    tbody.appendChild(tr);
 }
 
 async function collectSubmission(submissionId) {

@@ -548,3 +548,13 @@ grant execute on function public.get_user_stats() to authenticated;
 grant execute on function public.get_agent_stats() to authenticated;
 grant execute on function public.get_admin_stats() to authenticated;
 grant execute on function public.approve_withdrawal(bigint, text) to authenticated;
+
+-- Table grants (RLS still applies)
+grant usage on schema public to anon, authenticated;
+
+grant select, insert, update, delete on table public.users to authenticated;
+grant select, insert, update, delete on table public.wallets to authenticated;
+grant select, insert, update, delete on table public.waste_submissions to authenticated;
+grant select, insert, update, delete on table public.withdrawal_requests to authenticated;
+
+grant usage, select on all sequences in schema public to authenticated;

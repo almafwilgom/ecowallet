@@ -101,6 +101,10 @@ async function loadPendingWithdrawals() {
         tbody.innerHTML = rows;
     } catch (error) {
         console.error('Error loading withdrawals:', error);
+        const tbody = document.getElementById('withdrawalsBody');
+        const noWithdrawals = document.getElementById('noWithdrawals');
+        if (noWithdrawals) noWithdrawals.style.display = 'none';
+        renderTableError(tbody, 6, error);
     }
 }
 
@@ -136,6 +140,8 @@ async function loadAllSubmissions(status = null) {
         tbody.innerHTML = rows;
     } catch (error) {
         console.error('Error loading submissions:', error);
+        const tbody = document.getElementById('submissionsTableBody');
+        renderTableError(tbody, 8, error);
     }
 }
 
@@ -196,7 +202,23 @@ async function loadAllUsers(role = null) {
         tbody.innerHTML = rows;
     } catch (error) {
         console.error('Error loading users:', error);
+        const tbody = document.getElementById('usersBody');
+        renderTableError(tbody, 9, error);
     }
+}
+
+function renderTableError(tbody, colSpan, error) {
+    if (!tbody) return;
+    tbody.innerHTML = '';
+
+    const tr = document.createElement('tr');
+    const td = document.createElement('td');
+    td.colSpan = colSpan;
+    td.style.textAlign = 'center';
+    td.style.color = '#B71C1C';
+    td.textContent = `Error loading data: ${error?.message || 'Unknown error'}`;
+    tr.appendChild(td);
+    tbody.appendChild(tr);
 }
 
 function setupTabs() {

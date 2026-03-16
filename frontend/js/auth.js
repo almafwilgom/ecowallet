@@ -11,14 +11,22 @@ document.addEventListener('DOMContentLoaded', () => {
             const storedUser = localStorage.getItem('user');
             if ((loginForm || registerForm) && storedToken && storedUser) {
                 try {
+                    const url = new URL(window.location.href);
+                    const isOAuthCallback = url.searchParams.has('code')
+                        || (window.location.hash && window.location.hash.includes('access_token'));
                     const parsedUser = JSON.parse(storedUser);
-                    if (parsedUser?.role === 'admin') {
-                        window.location.href = 'admin.html';
-                    } else if (parsedUser?.role === 'agent') {
-                        window.location.href = 'agent.html';
-                    } else if (parsedUser?.role) {
-                        window.location.href = 'dashboard.html';
+                    const destination = parsedUser?.role === 'admin'
+                        ? 'admin.html'
+                        : parsedUser?.role === 'agent'
+                            ? 'agent.html'
+                            : 'dashboard.html';
+
+                    if (isOAuthCallback) {
+                        window.location.href = destination;
+                        return;
                     }
+
+                    showSessionMessage(parsedUser, destination, loginForm || registerForm);
                 } catch (error) {
                     // ignore
                 }
@@ -252,6 +260,47 @@ function preloadResetToken() {
     const token = params.get('token');
     if (token) {
         tokenInput.value = token;
+    }
+}
+
+function showSessionMessage(user, destination, form) {
+    const sessionDiv = document.getElementById('sessionMessage');
+    if (!sessionDiv) return;
+
+    sessionDiv.innerHTML = '';
+    sessionDiv.style.display = 'flex';
+
+    const label = document.createElement('span');
+    label.textContent = `Signed in as ${user?.email || 'an account'}.`;
+
+    const continueLink = document.createElement('a');
+    continueLink.href = destination;
+    continueLink.className = 'btn btn-ghost btn-pill btn-sm';
+    continueLink.textContent = 'Continue';
+
+    const logoutBtn = document.createElement('button');
+    logoutBtn.type = 'button';
+    logoutBtn.className = 'btn btn-primary btn-pill btn-sm';
+    logoutBtn.textContent = 'Log out';
+    logoutBtn.addEventListener('click', async () => {
+        try {
+            if (window.authAPI && window.authAPI.logout) {
+                await window.authAPI.logout();
+            }
+        } catch (error) {
+            // ignore
+        } finally {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            window.location.reload();
+        }
+    });
+
+    sessionDiv.append(label, continueLink, logoutBtn);
+
+    if (form) {
+        const submitBtn = form.querySelector('button[type="submit"]');
+        if (submitBtn) submitBtn.disabled = true;
     }
 }
 
