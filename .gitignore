@@ -13,3 +13,6 @@ node_modules/
 
 .vscode/
 .vscode/
+.vercel
+.env*.local
+.vercel.env*.local
