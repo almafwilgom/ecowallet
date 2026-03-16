@@ -310,7 +310,7 @@ as $$
         coalesce(sum(case when ws.status = 'collected' then ws.weight_kg else 0 end), 0),
         coalesce(sum(case when ws.status = 'collected' then ws.co2_saved else 0 end), 0),
         coalesce(sum(case when ws.status = 'collected' then ws.payout else 0 end), 0),
-        coalesce(w.balance, 0)
+        coalesce(max(w.balance), 0)
     from public.waste_submissions ws
     left join public.wallets w on ws.user_id = w.user_id
     where ws.user_id = public.current_user_id();
@@ -331,9 +331,9 @@ as $$
     select
         u.id,
         u.name,
-        count(ws.id),
-        coalesce(sum(ws.weight_kg), 0),
-        coalesce(sum(ws.co2_saved), 0)
+        count(ws.id) as submission_count,
+        coalesce(sum(ws.weight_kg), 0) as total_waste_kg,
+        coalesce(sum(ws.co2_saved), 0) as total_co2_saved
     from public.users u
     left join public.waste_submissions ws
         on u.id = ws.user_id
