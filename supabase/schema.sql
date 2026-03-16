@@ -61,6 +61,7 @@ create table if not exists public.withdrawal_requests (
 create index if not exists idx_users_auth_id on public.users(auth_id);
 create index if not exists idx_users_role on public.users(role);
 create index if not exists idx_waste_user on public.waste_submissions(user_id);
+create index if not exists idx_waste_agent on public.waste_submissions(agent_id);
 create index if not exists idx_waste_status on public.waste_submissions(status);
 create index if not exists idx_waste_created on public.waste_submissions(created_at);
 create index if not exists idx_withdrawal_user on public.withdrawal_requests(user_id);

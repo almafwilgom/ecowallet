@@ -11,9 +11,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 async function loadAgentData() {
     try {
-        await loadAgentStats();
-        await loadPendingSubmissions();
-        await loadCollectedSubmissions();
+        await Promise.all([
+            loadAgentStats(),
+            loadPendingSubmissions(),
+            loadCollectedSubmissions()
+        ]);
     } catch (error) {
         console.error('Error loading agent data:', error);
     }
@@ -47,24 +49,22 @@ async function loadPendingSubmissions() {
         }
 
         noSubmissions.style.display = 'none';
-
-        data.submissions.forEach(submission => {
-            tbody.innerHTML += `
-                <tr>
-                    <td>${submission.user_name}</td>
-                    <td>${submission.material_type}</td>
-                    <td>${formatWeight(submission.weight_kg)}</td>
-                    <td>${submission.location}</td>
-                    <td>${formatCurrency(submission.payout)}</td>
-                    <td>${formatDate(submission.created_at)}</td>
-                    <td>
-                        <button class="action-btn" onclick="collectSubmission(${submission.id})">
-                            Mark Collected
-                        </button>
-                    </td>
-                </tr>
-            `;
-        });
+        const rows = data.submissions.map((submission) => `
+            <tr>
+                <td>${submission.user_name}</td>
+                <td>${submission.material_type}</td>
+                <td>${formatWeight(submission.weight_kg)}</td>
+                <td>${submission.location}</td>
+                <td>${formatCurrency(submission.payout)}</td>
+                <td>${formatDate(submission.created_at)}</td>
+                <td>
+                    <button class="action-btn" onclick="collectSubmission(${submission.id})">
+                        Mark Collected
+                    </button>
+                </td>
+            </tr>
+        `).join('');
+        tbody.innerHTML = rows;
     } catch (error) {
         console.error('Error loading pending submissions:', error);
     }
@@ -82,18 +82,17 @@ async function loadCollectedSubmissions() {
             return;
         }
 
-        data.submissions.slice(0, 20).forEach(submission => {
-            tbody.innerHTML += `
-                <tr>
-                    <td>${submission.user_name}</td>
-                    <td>${submission.material_type}</td>
-                    <td>${formatWeight(submission.weight_kg)}</td>
-                    <td>${formatCurrency(submission.payout)}</td>
-                    <td>${submission.co2_saved.toFixed(2)} kg</td>
-                    <td>${formatDate(submission.updated_at)}</td>
-                </tr>
-            `;
-        });
+        const rows = data.submissions.slice(0, 20).map((submission) => `
+            <tr>
+                <td>${submission.user_name}</td>
+                <td>${submission.material_type}</td>
+                <td>${formatWeight(submission.weight_kg)}</td>
+                <td>${formatCurrency(submission.payout)}</td>
+                <td>${submission.co2_saved.toFixed(2)} kg</td>
+                <td>${formatDate(submission.updated_at)}</td>
+            </tr>
+        `).join('');
+        tbody.innerHTML = rows;
     } catch (error) {
         console.error('Error loading collected submissions:', error);
     }

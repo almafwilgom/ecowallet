@@ -13,10 +13,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 async function loadAdminData() {
     try {
-        await loadPlatformStats();
-        await loadPendingWithdrawals();
-        await loadAllSubmissions();
-        await loadAllUsers();
+        await Promise.all([
+            loadPlatformStats(),
+            loadPendingWithdrawals(),
+            loadAllSubmissions(),
+            loadAllUsers()
+        ]);
     } catch (error) {
         console.error('Error loading admin data:', error);
     }
@@ -54,7 +56,7 @@ async function loadPendingWithdrawals() {
 
         noWithdrawals.style.display = 'none';
 
-        data.withdrawals.forEach(withdrawal => {
+        const rows = data.withdrawals.map((withdrawal) => {
             let details = withdrawal.phone_number || '';
             if (withdrawal.bank_details) {
                 try {
@@ -78,7 +80,7 @@ async function loadPendingWithdrawals() {
             }
             const displayName = withdrawal.user_name || withdrawal.name || withdrawal.email || 'Unknown';
 
-            tbody.innerHTML += `
+            return `
                 <tr>
                     <td>${displayName}</td>
                     <td>${formatCurrency(withdrawal.amount)}</td>
@@ -95,7 +97,8 @@ async function loadPendingWithdrawals() {
                     </td>
                 </tr>
             `;
-        });
+        }).join('');
+        tbody.innerHTML = rows;
     } catch (error) {
         console.error('Error loading withdrawals:', error);
     }
@@ -113,11 +116,11 @@ async function loadAllSubmissions(status = null) {
             return;
         }
 
-        data.submissions.slice(0, 50).forEach(submission => {
+        const rows = data.submissions.slice(0, 50).map((submission) => {
             const statusBadge = `<span class="status-badge status-${submission.status}">${submission.status}</span>`;
             const userName = submission.user_name || submission.user_id || 'Unknown';
             const agentName = submission.agent_name || submission.agent_id || '-';
-            tbody.innerHTML += `
+            return `
                 <tr>
                     <td>${userName}</td>
                     <td>${submission.material_type}</td>
@@ -129,7 +132,8 @@ async function loadAllSubmissions(status = null) {
                     <td>${formatDate(submission.created_at)}</td>
                 </tr>
             `;
-        });
+        }).join('');
+        tbody.innerHTML = rows;
     } catch (error) {
         console.error('Error loading submissions:', error);
     }
@@ -148,7 +152,7 @@ async function loadAllUsers(role = null) {
             return;
         }
 
-        data.users.forEach(user => {
+        const rows = data.users.map((user) => {
             const isSelf = currentUser?.id === user.id;
             const isDeleted = Boolean(user.deleted_at);
             const statusLabel = isDeleted ? 'Disabled' : 'Active';
@@ -160,7 +164,7 @@ async function loadAllUsers(role = null) {
             const displayPhone = user.phone || '-';
             const displayAddress = user.address || '-';
 
-            tbody.innerHTML += `
+            return `
                 <tr>
                     <td>${user.name}</td>
                     <td>${user.email}</td>
@@ -188,7 +192,8 @@ async function loadAllUsers(role = null) {
                     </td>
                 </tr>
             `;
-        });
+        }).join('');
+        tbody.innerHTML = rows;
     } catch (error) {
         console.error('Error loading users:', error);
     }
