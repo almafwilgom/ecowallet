@@ -7,6 +7,8 @@ create table if not exists public.users (
     name text not null,
     email text unique not null,
     password text not null default '',
+    phone text,
+    address text,
     state text not null default 'Unknown',
     role text not null default 'user' check (role in ('user', 'agent', 'admin')),
     google_id text unique,
@@ -14,6 +16,12 @@ create table if not exists public.users (
     updated_at timestamptz default now(),
     deleted_at timestamptz
 );
+
+alter table if exists public.users
+    add column if not exists phone text;
+
+alter table if exists public.users
+    add column if not exists address text;
 
 create table if not exists public.wallets (
     id bigserial primary key,
@@ -117,6 +125,8 @@ set search_path = public
 as $$
 declare
     display_name text;
+    user_phone text;
+    user_address text;
     user_state text;
     user_role text;
     new_user_id bigint;
@@ -126,11 +136,16 @@ begin
         new.raw_user_meta_data->>'full_name',
         split_part(new.email, '@', 1)
     );
+    user_phone := coalesce(
+        new.raw_user_meta_data->>'phone',
+        new.raw_user_meta_data->>'phone_number'
+    );
+    user_address := new.raw_user_meta_data->>'address';
     user_state := coalesce(new.raw_user_meta_data->>'state', 'Unknown');
     user_role := coalesce(new.raw_user_meta_data->>'role', 'user');
 
-    insert into public.users (auth_id, name, email, password, state, role)
-    values (new.id, display_name, new.email, '', user_state, user_role)
+    insert into public.users (auth_id, name, email, password, phone, address, state, role)
+    values (new.id, display_name, new.email, '', user_phone, user_address, user_state, user_role)
     on conflict (auth_id) do update
     set email = excluded.email;
 

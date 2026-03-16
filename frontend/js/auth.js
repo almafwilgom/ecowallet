@@ -110,10 +110,12 @@ async function handleRegister(e) {
 
         const name = document.getElementById('name').value.trim();
         const email = document.getElementById('email').value.trim();
+        const phone = document.getElementById('phone').value.trim();
+        const address = document.getElementById('address').value.trim();
         const password = document.getElementById('password').value;
         const state = document.getElementById('state').value.trim();
 
-        if (!name || !email || !password || !state) {
+        if (!name || !email || !phone || !address || !password || !state) {
             throw new Error('All fields are required');
         }
 
@@ -121,7 +123,7 @@ async function handleRegister(e) {
             throw new Error('Password must be at least 6 characters');
         }
 
-        await authAPI.register({ name, email, password, state });
+        await authAPI.register({ name, email, phone, address, password, state });
 
         // Success - redirect to login
         setTimeout(() => {

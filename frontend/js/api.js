@@ -79,7 +79,7 @@
         const client = getSupabaseClient();
         const { data, error } = await client
             .from('users')
-            .select('id, auth_id, name, email, role, state, deleted_at, created_at')
+            .select('id, auth_id, name, email, phone, address, role, state, deleted_at, created_at')
             .eq('auth_id', authUser.id)
             .single();
 
@@ -91,6 +91,8 @@
         const name = metadata.name || metadata.full_name || authUser.email?.split('@')[0] || 'User';
         const state = metadata.state || 'Unknown';
         const role = metadata.role || 'user';
+        const phone = metadata.phone || metadata.phone_number || null;
+        const address = metadata.address || null;
 
         const insertResult = await client
             .from('users')
@@ -98,10 +100,12 @@
                 auth_id: authUser.id,
                 name,
                 email: authUser.email,
+                phone,
+                address,
                 state,
                 role
             })
-            .select('id, auth_id, name, email, role, state, deleted_at, created_at')
+            .select('id, auth_id, name, email, phone, address, role, state, deleted_at, created_at')
             .single();
 
         if (insertResult.error) {
@@ -163,7 +167,7 @@
 
     const authAPI = {
         register: async (payload) => {
-            const { name, email, password, state } = payload || {};
+            const { name, email, password, state, phone, address } = payload || {};
             const client = getSupabaseClient();
             const { data, error } = await client.auth.signUp({
                 email,
@@ -171,6 +175,8 @@
                 options: {
                     data: {
                         name,
+                        phone,
+                        address,
                         state,
                         role: 'user'
                     }
@@ -534,7 +540,7 @@
             const client = getSupabaseClient();
             let query = client
                 .from('users')
-                .select('id, name, email, state, role, deleted_at, created_at')
+                .select('id, name, email, phone, address, state, role, deleted_at, created_at')
                 .order('created_at', { ascending: false })
                 .limit(limit);
 
