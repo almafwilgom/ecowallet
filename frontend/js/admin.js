@@ -144,7 +144,7 @@ async function loadAllUsers(role = null) {
         tbody.innerHTML = '';
 
         if (data.users.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: #999;">No users found</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; color: #999;">No users found</td></tr>';
             return;
         }
 
@@ -157,11 +157,15 @@ async function loadAllUsers(role = null) {
             const softDisabled = isSelf;
             const hardDisabled = isSelf;
             const safeName = user.name.replace(/'/g, "\\'");
+            const displayPhone = user.phone || '-';
+            const displayAddress = user.address || '-';
 
             tbody.innerHTML += `
                 <tr>
                     <td>${user.name}</td>
                     <td>${user.email}</td>
+                    <td>${displayPhone}</td>
+                    <td>${displayAddress}</td>
                     <td>${user.state}</td>
                     <td>
                         <span class="status-badge status-${user.role}">
