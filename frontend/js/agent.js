@@ -1,7 +1,7 @@
 // Agent Dashboard Logic
 document.addEventListener('DOMContentLoaded', async () => {
     // Check authentication
-    const user = checkAuth('agent');
+    const user = await checkAuth('agent');
     setupLogout();
 
     if (user) {

@@ -4,7 +4,7 @@ let materialChart = null;
 let co2Chart = null;
 
 document.addEventListener('DOMContentLoaded', async () => {
-    const user = checkAuth('user');
+    const user = await checkAuth('user');
     setupLogout();
 
     if (user) {

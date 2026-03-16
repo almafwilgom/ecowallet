@@ -5,6 +5,29 @@ document.addEventListener('DOMContentLoaded', () => {
     const resetRequestForm = document.getElementById('resetRequestForm');
     const resetConfirmForm = document.getElementById('resetConfirmForm');
 
+    if (window.syncSupabaseSession) {
+        window.syncSupabaseSession().then(() => {
+            const storedToken = localStorage.getItem('token');
+            const storedUser = localStorage.getItem('user');
+            if ((loginForm || registerForm) && storedToken && storedUser) {
+                try {
+                    const parsedUser = JSON.parse(storedUser);
+                    if (parsedUser?.role === 'admin') {
+                        window.location.href = 'admin.html';
+                    } else if (parsedUser?.role === 'agent') {
+                        window.location.href = 'agent.html';
+                    } else if (parsedUser?.role) {
+                        window.location.href = 'dashboard.html';
+                    }
+                } catch (error) {
+                    // ignore
+                }
+            }
+        }).catch(() => {
+            // Ignore session sync errors on public pages
+        });
+    }
+
     if (loginForm) {
         loginForm.addEventListener('submit', handleLogin);
     }
@@ -21,13 +44,17 @@ document.addEventListener('DOMContentLoaded', () => {
         resetConfirmForm.addEventListener('submit', handlePasswordResetConfirm);
     }
 
-    initGoogleLogin();
+    initGithubLogin();
     preloadResetToken();
 });
 
 function handleAuthSuccess(result) {
     if (!result || !result.token || !result.user) {
         throw new Error('Invalid login response');
+    }
+
+    if (result.user.deleted_at) {
+        throw new Error('Account is disabled. Contact admin.');
     }
 
     localStorage.setItem('token', result.token);
@@ -98,7 +125,7 @@ async function handleRegister(e) {
 
         // Success - redirect to login
         setTimeout(() => {
-            window.location.href = 'login.html?message=Registration successful! Please login.';
+            window.location.href = 'login.html?message=Registration successful! Check your email if confirmation is required.';
         }, 1000);
     } catch (error) {
         errorDiv.textContent = 'Error: ' + error.message;
@@ -153,13 +180,10 @@ async function handlePasswordResetConfirm(e) {
         submitBtn.disabled = true;
         submitBtn.textContent = 'Resetting...';
 
-        const tokenInput = document.getElementById('resetToken');
         const password = document.getElementById('password').value;
         const confirmPassword = document.getElementById('confirmPassword').value;
 
-        const token = tokenInput ? tokenInput.value.trim() : '';
-
-        if (!token || !password || !confirmPassword) {
+        if (!password || !confirmPassword) {
             throw new Error('All fields are required');
         }
 
@@ -171,7 +195,7 @@ async function handlePasswordResetConfirm(e) {
             throw new Error('Passwords do not match');
         }
 
-        await authAPI.confirmPasswordReset({ token, password });
+        await authAPI.confirmPasswordReset({ password });
 
         if (successDiv) {
             successDiv.textContent = 'Password reset successful. Redirecting to login...';
@@ -190,60 +214,31 @@ async function handlePasswordResetConfirm(e) {
     }
 }
 
-function getGoogleClientId() {
-    return window.ECOWALLET_GOOGLE_CLIENT_ID || localStorage.getItem('ecowalletGoogleClientId');
-}
-
-function initGoogleLogin() {
+function initGithubLogin() {
     const googleButton = document.getElementById('googleLoginButton');
-    const googleClientId = getGoogleClientId();
 
     if (!googleButton) return;
 
-    if (!googleClientId) {
-        googleButton.innerHTML = '<span>Google login is not configured.</span>';
+    if (!window.isSupabaseConfigured || !window.isSupabaseConfigured()) {
+        googleButton.innerHTML = '<span>GitHub login is not configured.</span>';
         googleButton.classList.add('google-disabled');
         return;
     }
 
-    const loadButton = () => {
-        if (!window.google || !window.google.accounts || !window.google.accounts.id) {
-            setTimeout(loadButton, 300);
-            return;
-        }
-
-        window.google.accounts.id.initialize({
-            client_id: googleClientId,
-            callback: handleGoogleCredentialResponse
+    googleButton.innerHTML = '<button type="button" class="btn btn-ghost btn-pill btn-block">Continue with GitHub</button>';
+    const buttonEl = googleButton.querySelector('button');
+    if (buttonEl) {
+        buttonEl.addEventListener('click', async () => {
+            try {
+                await authAPI.loginWithGithub();
+            } catch (error) {
+                const errorDiv = document.getElementById('errorMessage');
+                if (errorDiv) {
+                    errorDiv.textContent = 'Error: ' + error.message;
+                    errorDiv.style.display = 'block';
+                }
+            }
         });
-
-        window.google.accounts.id.renderButton(googleButton, {
-            theme: 'outline',
-            size: 'large',
-            text: 'continue_with',
-            shape: 'pill',
-            width: 280
-        });
-    };
-
-    loadButton();
-}
-
-async function handleGoogleCredentialResponse(response) {
-    const errorDiv = document.getElementById('errorMessage');
-
-    try {
-        if (!response?.credential) {
-            throw new Error('Google login failed');
-        }
-
-        const result = await authAPI.loginWithGoogle({ credential: response.credential });
-        handleAuthSuccess(result);
-    } catch (error) {
-        if (errorDiv) {
-            errorDiv.textContent = 'Error: ' + error.message;
-            errorDiv.style.display = 'block';
-        }
     }
 }
 
@@ -270,9 +265,19 @@ function getRoleFromToken(token) {
 }
 
 // Check authentication
-function checkAuth(requiredRole = null) {
-    const token = localStorage.getItem('token');
-    const user = localStorage.getItem('user');
+async function checkAuth(requiredRole = null) {
+    let token = localStorage.getItem('token');
+    let user = localStorage.getItem('user');
+
+    if ((!token || !user) && window.syncSupabaseSession) {
+        try {
+            await window.syncSupabaseSession();
+        } catch (error) {
+            // ignore
+        }
+        token = localStorage.getItem('token');
+        user = localStorage.getItem('user');
+    }
 
     if (!token || !user) {
         window.location.href = 'login.html';
@@ -295,6 +300,13 @@ function checkAuth(requiredRole = null) {
             userData.role = roleFromToken;
             localStorage.setItem('user', JSON.stringify(userData));
         }
+    }
+
+    if (userData.deleted_at) {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        window.location.href = 'login.html';
+        return null;
     }
 
     if (requiredRole) {
@@ -321,6 +333,9 @@ function setupLogout() {
     if (logoutBtn) {
         logoutBtn.addEventListener('click', (e) => {
             e.preventDefault();
+            if (window.authAPI && window.authAPI.logout) {
+                window.authAPI.logout().catch(() => {});
+            }
             localStorage.removeItem('token');
             localStorage.removeItem('user');
             window.location.href = 'index.html';

@@ -1,7 +1,7 @@
 // Admin Dashboard Logic
 document.addEventListener('DOMContentLoaded', async () => {
     // Check authentication
-    const user = checkAuth('admin');
+    const user = await checkAuth('admin');
     setupLogout();
 
     if (user) {
@@ -58,7 +58,9 @@ async function loadPendingWithdrawals() {
             let details = withdrawal.phone_number || '';
             if (withdrawal.bank_details) {
                 try {
-                    const bankDetails = JSON.parse(withdrawal.bank_details);
+                    const bankDetails = typeof withdrawal.bank_details === 'string'
+                        ? JSON.parse(withdrawal.bank_details)
+                        : withdrawal.bank_details;
                     if (withdrawal.method === 'bank_transfer') {
                         const parts = [
                             bankDetails.account_name,
@@ -177,7 +179,7 @@ async function loadAllUsers(role = null) {
                             ${softLabel}
                         </button>
                         <button class="action-btn danger" ${hardDisabled ? 'disabled' : ''} onclick="hardDeleteUserAccount(${user.id}, '${safeName}', '${user.role}')">
-                            Delete
+                            Revoke Access
                         </button>
                     </td>
                 </tr>
@@ -278,13 +280,13 @@ async function toggleUserStatus(userId, userName, isDeleted) {
 async function hardDeleteUserAccount(userId, userName, role) {
     try {
         const roleNote = role === 'admin' ? ' This is an admin account.' : '';
-        if (!confirm(`Permanently delete ${userName}? This removes all their data.${roleNote}`)) {
+        if (!confirm(`Disable ${userName}? They will be unable to log in.${roleNote}`)) {
             return;
         }
 
         await adminAPI.deleteUser(userId);
 
-        alert('User deleted successfully.');
+        alert('User disabled successfully.');
         await loadAdminData();
     } catch (error) {
         alert('Error: ' + error.message);
@@ -299,22 +301,20 @@ async function handleCreateAgent(e) {
     try {
         msgDiv.style.display = 'none';
         submitBtn.disabled = true;
-        submitBtn.textContent = 'Creating...';
+        submitBtn.textContent = 'Updating...';
 
-        const name = document.getElementById('agentName').value.trim();
         const email = document.getElementById('agentEmail').value.trim();
-        const password = document.getElementById('agentPassword').value;
         const state = document.getElementById('agentState').value.trim();
 
-        if (!name || !email || !password || !state) {
-            throw new Error('All fields are required');
+        if (!email) {
+            throw new Error('Email is required');
         }
 
-        await adminAPI.createAgent({ name, email, password, state });
+        await adminAPI.createAgent({ email, state });
 
         // Show success message
         msgDiv.className = 'form-message success';
-        msgDiv.textContent = 'Success: Agent account created successfully.';
+        msgDiv.textContent = 'Success: User role updated to agent.';
         msgDiv.style.display = 'block';
 
         // Reset form
@@ -330,7 +330,7 @@ async function handleCreateAgent(e) {
         msgDiv.style.display = 'block';
     } finally {
         submitBtn.disabled = false;
-        submitBtn.textContent = 'Create Agent';
+        submitBtn.textContent = 'Update Agent Role';
     }
 }
 
@@ -342,22 +342,20 @@ async function handleCreateAdmin(e) {
     try {
         msgDiv.style.display = 'none';
         submitBtn.disabled = true;
-        submitBtn.textContent = 'Creating...';
+        submitBtn.textContent = 'Updating...';
 
-        const name = document.getElementById('adminName').value.trim();
         const email = document.getElementById('adminEmail').value.trim();
-        const password = document.getElementById('adminPassword').value;
         const state = document.getElementById('adminState').value.trim();
 
-        if (!name || !email || !password || !state) {
-            throw new Error('All fields are required');
+        if (!email) {
+            throw new Error('Email is required');
         }
 
-        await adminAPI.createAdmin({ name, email, password, state });
+        await adminAPI.createAdmin({ email, state });
 
         // Show success message
         msgDiv.className = 'form-message success';
-        msgDiv.textContent = 'Success: Admin account created successfully.';
+        msgDiv.textContent = 'Success: User role updated to admin.';
         msgDiv.style.display = 'block';
 
         // Reset form
@@ -373,6 +371,6 @@ async function handleCreateAdmin(e) {
         msgDiv.style.display = 'block';
     } finally {
         submitBtn.disabled = false;
-        submitBtn.textContent = 'Create Admin';
+        submitBtn.textContent = 'Update Admin Role';
     }
 }

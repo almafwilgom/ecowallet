@@ -172,64 +172,48 @@
                 <h2>Manage Platform</h2>
 
                 <div class="form-section">
-                    <h3>Create Agent Account</h3>
+                    <h3>Promote User to Agent</h3>
+                    <p class="form-hint">User must already have an account. This updates their role.</p>
                     <form id="createAgentForm" class="form">
                         <div class="form-row">
-                            <div class="form-group">
-                                <label for="agentName">Full Name</label>
-                                <input type="text" id="agentName" required>
-                            </div>
                             <div class="form-group">
                                 <label for="agentEmail">Email</label>
                                 <input type="email" id="agentEmail" required>
                             </div>
-                        </div>
-                        <div class="form-row">
                             <div class="form-group">
-                                <label for="agentPassword">Password</label>
-                                <input type="password" id="agentPassword" required minlength="6">
-                            </div>
-                            <div class="form-group">
-                                <label for="agentState">State</label>
-                                <input type="text" id="agentState" required>
+                                <label for="agentState">State (optional)</label>
+                                <input type="text" id="agentState">
                             </div>
                         </div>
                         <div id="agentMessage" class="form-message" style="display: none;"></div>
-                        <button type="submit" class="btn btn-primary btn-pill">Create Agent</button>
+                        <button type="submit" class="btn btn-primary btn-pill">Update Agent Role</button>
                     </form>
                 </div>
 
                 <div class="form-section">
-                    <h3>Create Admin Account</h3>
+                    <h3>Promote User to Admin</h3>
+                    <p class="form-hint">User must already have an account. This updates their role.</p>
                     <form id="createAdminForm" class="form">
                         <div class="form-row">
-                            <div class="form-group">
-                                <label for="adminName">Full Name</label>
-                                <input type="text" id="adminName" required>
-                            </div>
                             <div class="form-group">
                                 <label for="adminEmail">Email</label>
                                 <input type="email" id="adminEmail" required>
                             </div>
-                        </div>
-                        <div class="form-row">
                             <div class="form-group">
-                                <label for="adminPassword">Password</label>
-                                <input type="password" id="adminPassword" required minlength="6">
-                            </div>
-                            <div class="form-group">
-                                <label for="adminState">State</label>
-                                <input type="text" id="adminState" required>
+                                <label for="adminState">State (optional)</label>
+                                <input type="text" id="adminState">
                             </div>
                         </div>
                         <div id="adminMessage" class="form-message" style="display: none;"></div>
-                        <button type="submit" class="btn btn-primary btn-pill">Create Admin</button>
+                        <button type="submit" class="btn btn-primary btn-pill">Update Admin Role</button>
                     </form>
                 </div>
             </div>
         </div>
     </main>
 
+    <script src="js/config.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="js/api.js"></script>
     <script src="js/auth.js"></script>
     <script src="js/admin.js"></script>

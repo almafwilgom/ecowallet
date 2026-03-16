@@ -814,6 +814,12 @@ p {
     font-size: 1.3rem;
 }
 
+.form-hint {
+    margin: 0 0 16px;
+    color: #5b6b5f;
+    font-size: 0.95rem;
+}
+
 .form-message {
     padding: 12px 16px;
     border-radius: 8px;
