@@ -1,24 +1,18 @@
 {
   "version": 2,
-  "builds": [
-    {
-      "src": "frontend/**",
-      "use": "@vercel/static"
-    }
-  ],
   "routes": [
-    { "src": "/", "dest": "/frontend/index.html" },
-    { "src": "/about/?", "dest": "/frontend/about.html" },
-    { "src": "/services/?", "dest": "/frontend/services.html" },
-    { "src": "/login/?", "dest": "/frontend/login.html" },
-    { "src": "/register/?", "dest": "/frontend/register.html" },
-    { "src": "/forgot-password/?", "dest": "/frontend/forgot-password.html" },
-    { "src": "/reset-password/?", "dest": "/frontend/reset-password.html" },
-    { "src": "/dashboard/?", "dest": "/frontend/dashboard.html" },
-    { "src": "/admin/?", "dest": "/frontend/admin.html" },
-    { "src": "/admin-login/?", "dest": "/frontend/admin-login.html" },
-    { "src": "/agent/?", "dest": "/frontend/agent.html" },
-    { "src": "/(.*)", "dest": "/frontend/$1" }
+    { "src": "/", "dest": "/index.html" },
+    { "src": "/about/?", "dest": "/about.html" },
+    { "src": "/services/?", "dest": "/services.html" },
+    { "src": "/login/?", "dest": "/login.html" },
+    { "src": "/register/?", "dest": "/register.html" },
+    { "src": "/forgot-password/?", "dest": "/forgot-password.html" },
+    { "src": "/reset-password/?", "dest": "/reset-password.html" },
+    { "src": "/dashboard/?", "dest": "/dashboard.html" },
+    { "src": "/admin/?", "dest": "/admin.html" },
+    { "src": "/admin-login/?", "dest": "/admin-login.html" },
+    { "src": "/agent/?", "dest": "/agent.html" },
+    { "src": "/(.*)", "dest": "/$1" }
   ],
   "cleanUrls": true,
   "trailingSlash": false
