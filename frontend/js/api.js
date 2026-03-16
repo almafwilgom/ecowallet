@@ -1,4 +1,22 @@
 // Supabase-powered API wrapper for EcoWallet
+// --- PASTE IT HERE: At the top of your api.js file ---
+let isSyncing = false; 
+
+(function () {
+    // Everything else stays here...
+    
+    // ... inside syncSupabaseSession, you will use it like this:
+    async function syncSupabaseSession() {
+        if (isSyncing) return null; // Check the lock
+        isSyncing = true;           // Set the lock
+        
+        // ... your existing code ...
+        
+        isSyncing = false;          // Release the lock
+        return profile;
+    }
+})();
+
 (function () {
     function getConfigValue(value, fallback = '') {
         return typeof value === 'string' && value.trim() ? value.trim() : fallback;
