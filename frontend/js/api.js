@@ -1,127 +1,151 @@
-/* global agentAPI, formatCurrency, formatDate, formatWeight, setupLogout */
-
 /**
- * Agent Dashboard Logic for EcoWallet
+ * EcoWallet API Service
+ * Cleaned for ESLint compliance and global scope reliability.
  */
 
-document.addEventListener('DOMContentLoaded', async () => {
-    try {
-        const profile = await window.syncSupabaseSession();
+let isSyncing = false;
+
+(function () {
+    // --- 1. CONFIGURATION & CLIENT ---
+    function getConfigValue(value, fallback = '') {
+        return typeof value === 'string' && value.trim() ? value.trim() : fallback;
+    }
+
+    function getSupabaseConfig() {
+        return {
+            url: getConfigValue(window.ECOWALLET_SUPABASE_URL),
+            anonKey: getConfigValue(window.ECOWALLET_SUPABASE_ANON_KEY)
+        };
+    }
+
+    let supabaseClient = null;
+    function getSupabaseClient() {
+        const config = getSupabaseConfig();
+        // Access via window.supabase to satisfy ESLint no-undef/no-unused-vars
+        if (!config.url || !config.anonKey || !window.supabase) return null;
+
+        if (!supabaseClient) {
+            supabaseClient = window.supabase.createClient(config.url, config.anonKey);
+        }
+        return supabaseClient;
+    }
+
+    // --- 2. INTERNAL UTILITIES ---
+    async function ensureProfileForUser(authUser) {
+        if (!authUser) throw new Error('Not authenticated');
+        const client = getSupabaseClient();
         
-        if (!profile || profile.role !== 'agent') {
-            window.location.href = '/login.html';
-            return;
-        }
+        const { data, error } = await client
+            .from('users')
+            .select('*')
+            .eq('auth_id', authUser.id)
+            .single();
 
-        if (typeof setupLogout === 'function') {
-            setupLogout();
-        }
-
-        const userNameEl = document.getElementById('userName');
-        if (userNameEl) userNameEl.textContent = profile.name || 'Agent';
-
-        await loadAgentDashboard();
-    } catch (error) {
-        console.error('Initialization failed:', error);
-    }
-});
-
-async function loadAgentDashboard() {
-    try {
-        const data = await agentAPI.getAgentStats();
+        if (!error && data) return data;
         
-        // Defensive checks for the stats object
-        const stats = data.stats || {};
-        const totalCollections = stats.total_collections || 0;
-        const totalWeight = stats.total_weight || 0;
-        const totalCO2 = stats.total_co2 || 0;
-
-        const collectionsEl = document.getElementById('totalCollections');
-        const weightEl = document.getElementById('totalWeightCollected');
-        const co2El = document.getElementById('totalCO2Prevented');
-
-        if (collectionsEl) collectionsEl.textContent = totalCollections;
-        if (weightEl) weightEl.textContent = `${Number(totalWeight).toFixed(1)} kg`;
-        if (co2El) co2El.textContent = `${Number(totalCO2).toFixed(1)} kg`;
-
-        await Promise.all([
-            loadPendingSubmissions(),
-            loadCollectedHistory()
-        ]);
-    } catch (error) {
-        console.error('Error loading stats:', error);
+        // Fallback to auth metadata if profile table fetch fails
+        return {
+            ...authUser,
+            role: authUser.user_metadata?.role || 'user',
+            name: authUser.user_metadata?.name || 'Eco User'
+        };
     }
-}
 
-async function loadPendingSubmissions() {
-    const tbody = document.getElementById('submissionsBody');
-    if (!tbody) return;
-
-    try {
-        // MATCHED: This now matches agentAPI.getPendingSubmissions in api.js
-        const data = await agentAPI.getPendingSubmissions();
-        const collections = data.submissions || [];
-
-        if (collections.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="7" style="text-align: center;">No pending submissions</td></tr>';
-            return;
+    // --- 3. GLOBAL AUTH SYNC ---
+    window.syncSupabaseSession = async function() {
+        if (isSyncing) return null;
+        isSyncing = true;
+        
+        const client = getSupabaseClient();
+        if (!client) {
+            isSyncing = false;
+            return null;
         }
 
-        tbody.innerHTML = collections.map(col => `
-            <tr>
-                <td>${col.user_name || 'User'}</td>
-                <td>${col.material_type}</td>
-                <td>${formatWeight(col.weight_kg)}</td>
-                <td>${col.location || 'N/A'}</td>
-                <td>${formatCurrency(col.payout)}</td>
-                <td>${formatDate(col.created_at)}</td>
-                <td><button class="btn btn-sm" onclick="collectWaste('${col.id}')">Collect</button></td>
-            </tr>
-        `).join('');
-    } catch (error) {
-        console.error('Failed to load pending submissions:', error);
-        tbody.innerHTML = '<tr><td colspan="7">Error loading data</td></tr>';
-    }
-}
-
-async function loadCollectedHistory() {
-    const tbody = document.getElementById('collectedBody');
-    if (!tbody) return;
-
-    try {
-        // MATCHED: Changed from getRecentCollections to getCollectedSubmissions to match api.js
-        const data = await agentAPI.getCollectedSubmissions();
-        const collections = data.submissions || [];
-
-        if (collections.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">No history found</td></tr>';
-            return;
-        }
-
-        tbody.innerHTML = collections.map(col => `
-            <tr>
-                <td>${col.user_name || 'User'}</td>
-                <td>${col.material_type}</td>
-                <td>${formatWeight(col.weight_kg)}</td>
-                <td>${formatCurrency(col.payout)}</td>
-                <td>${(col.co2_saved || 0).toFixed(2)} kg</td>
-                <td>${formatDate(col.updated_at || col.created_at)}</td>
-            </tr>
-        `).join('');
-    } catch (error) {
-        console.error('Failed to load history:', error);
-        tbody.innerHTML = '<tr><td colspan="6">Error loading history</td></tr>';
-    }
-}
-
-window.collectWaste = async (id) => {
-    if (confirm('Confirm collection of this waste?')) {
         try {
-            // MATCHED: Changed from updateCollectionStatus to collectSubmission to match api.js
-            await agentAPI.collectSubmission(id);
-            await loadAgentDashboard();
-        } catch (error) {
-            alert('Failed to update: ' + error.message);
+            const { data, error } = await client.auth.getSession();
+            if (error || !data?.session) {
+                isSyncing = false;
+                return null;
+            }
+            
+            const profile = await ensureProfileForUser(data.session.user);
+            localStorage.setItem('user', JSON.stringify(profile));
+            
+            isSyncing = false;
+            return profile;
+        } catch (err) {
+            console.error('Session sync failed:', err);
+            isSyncing = false;
+            return null;
         }
-    }
-};
+    };
+
+    // --- 4. AGENT DASHBOARD API ---
+    window.agentAPI = {
+        async getAgentStats() {
+            const client = getSupabaseClient();
+            const { data, error } = await client.rpc('get_agent_stats');
+            if (error) throw error;
+            return { stats: data?.[0] || data || {} };
+        },
+
+        async getPendingSubmissions() {
+            const client = getSupabaseClient();
+            const { data, error } = await client
+                .from('waste_submissions')
+                .select('*, users(name)')
+                .eq('status', 'pending')
+                .order('created_at', { ascending: true });
+
+            if (error) throw error;
+            return { 
+                submissions: (data || []).map(row => ({
+                    ...row,
+                    user_name: row.users?.name || 'Unknown User'
+                }))
+            };
+        },
+
+        async getCollectedSubmissions() {
+            const client = getSupabaseClient();
+            const { data: { user } } = await client.auth.getUser();
+            const { data, error } = await client
+                .from('waste_submissions')
+                .select('*, users(name)')
+                .eq('status', 'collected')
+                .eq('agent_id', user.id)
+                .order('updated_at', { ascending: false });
+
+            if (error) throw error;
+            return { 
+                submissions: (data || []).map(row => ({
+                    ...row,
+                    user_name: row.users?.name || 'Unknown User'
+                }))
+            };
+        },
+
+        async collectSubmission(submissionId) {
+            const client = getSupabaseClient();
+            const { data: { user } } = await client.auth.getUser();
+            const { error } = await client
+                .from('waste_submissions')
+                .update({ 
+                    status: 'collected', 
+                    agent_id: user.id,
+                    updated_at: new Date().toISOString() 
+                })
+                .eq('id', submissionId);
+
+            if (error) throw error;
+            return { success: true };
+        }
+    };
+
+    // --- 5. FORMATTERS ---
+    window.formatCurrency = (amt) => `NGN ${Number(amt || 0).toLocaleString('en-NG', { minimumFractionDigits: 2 })}`;
+    window.formatDate = (d) => new Date(d).toLocaleString('en-NG', { dateStyle: 'medium', timeStyle: 'short' });
+    window.formatWeight = (w) => `${Number(w || 0).toFixed(2)} kg`;
+
+})();
