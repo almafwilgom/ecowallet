@@ -1,137 +1,76 @@
-// Agent Dashboard Logic
-document.addEventListener('DOMContentLoaded', async () => {
-    // Check authentication
-    const user = await checkAuth('agent');
-    setupLogout();
+/* global agentAPI, formatCurrency, formatDate, formatWeight, setupLogout */
 
-    if (user) {
+/**
+ * Agent Dashboard Logic for EcoWallet
+ */
+
+document.addEventListener('DOMContentLoaded', async () => {
+    try {
+        const profile = await window.syncSupabaseSession();
+        
+        if (!profile || profile.role !== 'agent') {
+            window.location.href = '/login.html';
+            return;
+        }
+
+        if (typeof setupLogout === 'function') {
+            setupLogout();
+        }
+
         await loadAgentData();
+        setupAgentEventListeners();
+    } catch (error) {
+        console.error('Initialization failed:', error);
+        window.location.href = '/login.html';
     }
 });
 
 async function loadAgentData() {
     try {
-        await Promise.all([
-            loadAgentStats(),
-            loadPendingSubmissions(),
-            loadCollectedSubmissions()
-        ]);
+        const data = await agentAPI.getAgentStats();
+        const stats = data.stats || { total_collections: 0, total_weight: 0 };
+
+        if (document.getElementById('totalCollections')) {
+            document.getElementById('totalCollections').textContent = stats.total_collections;
+        }
+        if (document.getElementById('totalWeightProcessed')) {
+            document.getElementById('totalWeightProcessed').textContent = `${stats.total_weight.toFixed(1)} kg`;
+        }
+        await loadRecentSubmissions();
     } catch (error) {
         console.error('Error loading agent data:', error);
     }
 }
 
-async function loadAgentStats() {
-    try {
-        const data = await agentAPI.getAgentStats();
-        const stats = data.stats;
-
-        document.getElementById('totalCollections').textContent = stats.total_collections;
-        document.getElementById('totalWeightCollected').textContent = `${stats.total_weight_kg.toFixed(1)} kg`;
-        document.getElementById('totalCO2Prevented').textContent = `${stats.total_co2_saved.toFixed(1)} kg`;
-    } catch (error) {
-        console.error('Error loading stats:', error);
-    }
-}
-
-async function loadPendingSubmissions() {
-    try {
-        const data = await agentAPI.getPendingSubmissions();
-        const tbody = document.getElementById('submissionsBody');
-        const noSubmissions = document.getElementById('noSubmissions');
-
-        tbody.innerHTML = '';
-
-        if (data.submissions.length === 0) {
-            noSubmissions.style.display = 'block';
-            tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: #999;">No pending submissions</td></tr>';
-            return;
-        }
-
-        noSubmissions.style.display = 'none';
-        const rows = data.submissions.map((submission) => `
-            <tr>
-                <td>${submission.user_name}</td>
-                <td>${submission.material_type}</td>
-                <td>${formatWeight(submission.weight_kg)}</td>
-                <td>${submission.location}</td>
-                <td>${formatCurrency(submission.payout)}</td>
-                <td>${formatDate(submission.created_at)}</td>
-                <td>
-                    <button class="action-btn" onclick="collectSubmission(${submission.id})">
-                        Mark Collected
-                    </button>
-                </td>
-            </tr>
-        `).join('');
-        tbody.innerHTML = rows;
-    } catch (error) {
-        console.error('Error loading pending submissions:', error);
-        const tbody = document.getElementById('submissionsBody');
-        const noSubmissions = document.getElementById('noSubmissions');
-        if (noSubmissions) noSubmissions.style.display = 'none';
-        renderTableError(tbody, 7, error);
-    }
-}
-
-async function loadCollectedSubmissions() {
-    try {
-        const data = await agentAPI.getCollectedSubmissions();
-        const tbody = document.getElementById('collectedBody');
-
-        tbody.innerHTML = '';
-
-        if (data.submissions.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: #999;">No collected submissions yet</td></tr>';
-            return;
-        }
-
-        const rows = data.submissions.slice(0, 20).map((submission) => `
-            <tr>
-                <td>${submission.user_name}</td>
-                <td>${submission.material_type}</td>
-                <td>${formatWeight(submission.weight_kg)}</td>
-                <td>${formatCurrency(submission.payout)}</td>
-                <td>${submission.co2_saved.toFixed(2)} kg</td>
-                <td>${formatDate(submission.updated_at)}</td>
-            </tr>
-        `).join('');
-        tbody.innerHTML = rows;
-    } catch (error) {
-        console.error('Error loading collected submissions:', error);
-        const tbody = document.getElementById('collectedBody');
-        renderTableError(tbody, 6, error);
-    }
-}
-
-function renderTableError(tbody, colSpan, error) {
+async function loadRecentSubmissions() {
+    const tbody = document.getElementById('recentSubmissionsBody');
     if (!tbody) return;
-    tbody.innerHTML = '';
 
-    const tr = document.createElement('tr');
-    const td = document.createElement('td');
-    td.colSpan = colSpan;
-    td.style.textAlign = 'center';
-    td.style.color = '#B71C1C';
-    td.textContent = `Error loading data: ${error?.message || 'Unknown error'}`;
-    tr.appendChild(td);
-    tbody.appendChild(tr);
+    try {
+        const data = await agentAPI.getRecentCollections();
+        tbody.innerHTML = data.collections.map((col) => `
+            <tr>
+                <td>${formatDate(col.created_at)}</td>
+                <td>${col.user_name || 'Anonymous'}</td>
+                <td>${col.material_type}</td>
+                <td>${formatWeight(col.weight_kg)}</td>
+                <td>${formatCurrency(col.payout)}</td>
+            </tr>`).join('');
+    } catch (error) {
+        console.error('Error loading submissions:', error);
+    }
 }
 
-async function collectSubmission(submissionId) {
-    try {
-        if (!confirm('Mark this submission as collected?')) {
-            return;
-        }
-
-        await agentAPI.collectSubmission(submissionId);
-
-        // Show success message
-        alert('Success: Submission marked as collected.');
-
-        // Reload data
-        await loadAgentData();
-    } catch (error) {
-        alert('Error: ' + error.message);
-    }
+function setupAgentEventListeners() {
+    document.getElementById('recordSubmissionForm')?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const submissionData = {
+            user_email: document.getElementById('userEmail').value,
+            material_type: document.getElementById('materialType').value,
+            weight_kg: parseFloat(document.getElementById('weightInput').value)
+        };
+        await agentAPI.submitRecyclingRecord(submissionData);
+        e.target.reset();
+        loadAgentData();
+    });
 }
