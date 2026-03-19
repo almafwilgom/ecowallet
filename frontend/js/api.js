@@ -3,27 +3,33 @@
  * Configured for Supabase Backend (BaaS)
  */
 
-const supabaseUrl = window.ECOWALLET_SUPABASE_URL || 'https://eigitkparyebddjtoocd.supabase.co';
-const supabaseKey = window.ECOWALLET_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVpZ2l0a3BhcnllYmRkanRvb2NkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2MTUzNDksImV4cCI6MjA4OTE5MTM0OX0.4eMrrwb7qoxJBg0JCKIJgPv7tQWKUKGVC0IWsWYyDQk';
-let supabase = null;
+(function() {
+    console.log('EcoWallet API: Initializing...');
+    
+    const supabaseUrl = window.ECOWALLET_SUPABASE_URL || 'https://eigitkparyebddjtoocd.supabase.co';
+    const supabaseKey = window.ECOWALLET_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVpZ2l0a3BhcnllYmRkanRvb2NkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2MTUzNDksImV4cCI6MjA4OTE5MTM0OX0.4eMrrwb7qoxJBg0JCKIJgPv7tQWKUKGVC0IWsWYyDQk';
+    let supabase = null;
 
-if (window.supabase && supabaseUrl && supabaseKey) {
-    supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
-} else {
-    console.warn('Supabase client not initialized. Ensure supabase-js is loaded and config.js has credentials.');
-}
+    // Try initial connection, but don't fail if supabase-js isn't ready yet
+    if (window.supabase && supabaseUrl && supabaseKey) {
+        supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+    }
 
-function getClient() {
-    if (!supabase) throw new Error('Supabase not connected. Refresh page or check config.');
-    return supabase;
-}
+    function getClient() {
+        // Lazy initialization: Try to connect again if supabase is null (handles script race conditions)
+        if (!supabase && window.supabase) {
+            supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+        }
+        if (!supabase) throw new Error('Supabase not connected. Refresh page or check config.');
+        return supabase;
+    }
 
-function getCurrentUserId() {
-    const userStr = localStorage.getItem('user');
-    return userStr ? JSON.parse(userStr).id : null;
-}
+    function getCurrentUserId() {
+        const userStr = localStorage.getItem('user');
+        return userStr ? JSON.parse(userStr).id : null;
+    }
 
-window.authAPI = {
+    window.authAPI = {
     async login(email, password) {
         const { data, error } = await getClient().auth.signInWithPassword({
             email,
@@ -252,5 +258,8 @@ window.syncSupabaseSession = async function() {
         localStorage.setItem('user', JSON.stringify(user));
         return user;
     }
-    return null;
-};
+        return null;
+    };
+
+    console.log('EcoWallet API: Ready');
+})();
