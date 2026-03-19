@@ -3,25 +3,25 @@
  * Configured for Supabase Backend (BaaS)
  */
 
-(function() {
+;(function() {
     console.log('EcoWallet API: Initializing...');
     
     const supabaseUrl = window.ECOWALLET_SUPABASE_URL || 'https://eigitkparyebddjtoocd.supabase.co';
     const supabaseKey = window.ECOWALLET_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVpZ2l0a3BhcnllYmRkanRvb2NkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2MTUzNDksImV4cCI6MjA4OTE5MTM0OX0.4eMrrwb7qoxJBg0JCKIJgPv7tQWKUKGVC0IWsWYyDQk';
-    let supabase = null;
+    let supabaseClient = null;
 
     // Try initial connection, but don't fail if supabase-js isn't ready yet
     if (window.supabase && supabaseUrl && supabaseKey) {
-        supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+        supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
     }
 
     function getClient() {
-        // Lazy initialization: Try to connect again if supabase is null (handles script race conditions)
-        if (!supabase && window.supabase) {
-            supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+        // Lazy initialization: Try to connect again if supabaseClient is null (handles script race conditions)
+        if (!supabaseClient && window.supabase) {
+            supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
         }
-        if (!supabase) throw new Error('Supabase not connected. Refresh page or check config.');
-        return supabase;
+        if (!supabaseClient) throw new Error('Supabase not connected. Refresh page or check config.');
+        return supabaseClient;
     }
 
     function getCurrentUserId() {
@@ -245,8 +245,8 @@ window.walletAPI = {
 
 // Session Sync Shim (keeps compatibility with existing auth.js)
 window.syncSupabaseSession = async function() {
-    if (!supabase) return null;
-    const { data } = await supabase.auth.getSession();
+    if (!supabaseClient) return null;
+    const { data } = await supabaseClient.auth.getSession();
     if (data.session?.user) {
         const user = {
             id: data.session.user.id,
