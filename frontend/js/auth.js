@@ -51,6 +51,7 @@ async function handleLogin(e) {
         const password = document.getElementById('password').value;
 
         if (!window.authAPI) {
+            console.error('window.authAPI is undefined. Check if api.js loaded correctly.');
             throw new Error('API client not ready. Please refresh the page.');
         }
 
@@ -78,6 +79,7 @@ async function handleRegister(e) {
         submitBtn.textContent = 'Creating Account...';
 
         if (!window.authAPI) {
+            console.error('window.authAPI is undefined. Check if api.js loaded correctly.');
             throw new Error('API client not ready. Please refresh the page.');
         }
 
