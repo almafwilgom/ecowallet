@@ -122,6 +122,10 @@ const register = (req, res) => {
             return res.status(400).json({ error: 'All fields are required' });
         }
 
+        if (typeof name !== 'string' || typeof email !== 'string' || typeof password !== 'string' || typeof state !== 'string') {
+            return res.status(400).json({ error: 'Invalid data format: fields must be strings' });
+        }
+
         // Check if user already exists
         db.get('SELECT id, deleted_at FROM users WHERE email = ?', [email], (err, userExists) => {
             if (err) {
@@ -189,6 +193,10 @@ const login = (req, res) => {
         // Validate input
         if (!email || !password) {
             return res.status(400).json({ error: 'Email and password are required' });
+        }
+
+        if (typeof email !== 'string' || typeof password !== 'string') {
+            return res.status(400).json({ error: 'Invalid data format: email and password must be strings' });
         }
 
         // Find user

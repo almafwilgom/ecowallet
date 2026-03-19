@@ -50,6 +50,10 @@ async function handleLogin(e) {
         const email = document.getElementById('email').value.trim();
         const password = document.getElementById('password').value;
 
+        if (!window.authAPI) {
+            throw new Error('API client not ready. Please refresh the page.');
+        }
+
         const result = await window.authAPI.login(email, password);
         
         const user = result.user || result;
@@ -73,16 +77,26 @@ async function handleRegister(e) {
         submitBtn.disabled = true;
         submitBtn.textContent = 'Creating Account...';
 
+        if (!window.authAPI) {
+            throw new Error('API client not ready. Please refresh the page.');
+        }
+
         const name = document.getElementById('name').value.trim();
         const email = document.getElementById('email').value.trim();
         const password = document.getElementById('password').value;
+        
+        // Capture optional fields if they exist in the DOM
+        const phone = document.getElementById('phone') ? document.getElementById('phone').value.trim() : '';
+        const address = document.getElementById('address') ? document.getElementById('address').value.trim() : '';
+        const state = document.getElementById('state') ? document.getElementById('state').value.trim() : '';
 
         if (!email || !password) throw new Error('Email and password required');
 
-        await window.authAPI.register({ name, email, password });
+        await window.authAPI.register({ name, email, password, phone, address, state });
         window.location.href = 'login.html?success=true';
     } catch (error) {
-        errorDiv.textContent = 'Error: ' + error.message;
+        console.error(error);
+        errorDiv.textContent = error.message || 'Registration failed';
         errorDiv.style.display = 'block';
         submitBtn.disabled = false;
         submitBtn.textContent = 'Register';

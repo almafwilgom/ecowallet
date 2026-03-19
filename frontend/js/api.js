@@ -3,8 +3,8 @@
  * Configured for Supabase Backend (BaaS)
  */
 
-const supabaseUrl = window.ECOWALLET_SUPABASE_URL;
-const supabaseKey = window.ECOWALLET_SUPABASE_ANON_KEY;
+const supabaseUrl = window.ECOWALLET_SUPABASE_URL || 'https://eigitkparyebddjtoocd.supabase.co';
+const supabaseKey = window.ECOWALLET_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVpZ2l0a3BhcnllYmRkanRvb2NkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2MTUzNDksImV4cCI6MjA4OTE5MTM0OX0.4eMrrwb7qoxJBg0JCKIJgPv7tQWKUKGVC0IWsWYyDQk';
 let supabase = null;
 
 if (window.supabase && supabaseUrl && supabaseKey) {
@@ -53,6 +53,8 @@ window.authAPI = {
                 data: {
                     name: userData.name,
                     state: userData.state,
+                    phone: userData.phone,
+                    address: userData.address,
                     role: 'user'
                 }
             }
