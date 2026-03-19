@@ -37,7 +37,7 @@ files.forEach(file => {
         content = content.replace(cdnRegex, '');
         updated = true;
         console.log(`- Removed conflicting Supabase CDN script from ${file}`);
-    });
+    }
     
     if (updated) {
         fs.writeFileSync(filePath, content);

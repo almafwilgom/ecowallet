@@ -5,19 +5,21 @@
 
 console.log("API.JS LOADED");
 
-import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+// Client will be initialized lazily in getClient()
 
 const supabaseUrl = window.ECOWALLET_SUPABASE_URL || 'https://eigitkparyebddjtoocd.supabase.co';
 const supabaseKey = window.ECOWALLET_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVpZ2l0a3BhcnllYmRkanRvb2NkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2MTUzNDksImV4cCI6MjA4OTE5MTM0OX0.4eMrrwb7qoxJBg0JCKIJgPv7tQWKUKGVC0IWsWYyDQk';
 
-// Attach client to window to avoid redeclaration issues and ensure single instance
-if (!window.supabaseClient) {
-    window.supabaseClient = createClient(supabaseUrl, supabaseKey);
-    console.log("Supabase initialized");
-}
-
 function getClient() {
-    if (!window.supabaseClient) throw new Error('Supabase not connected. Refresh page or check config.');
+    if (!window.supabaseClient) {
+        const createClient = window.supabase ? window.supabase.createClient : null;
+        if (!createClient) {
+            console.error('Supabase library not loaded. Check script tags in HTML.');
+            throw new Error('Supabase not connected. Refresh page or check config.');
+        }
+        window.supabaseClient = createClient(supabaseUrl, supabaseKey);
+        console.log("Supabase initialized");
+    }
     return window.supabaseClient;
 }
 
