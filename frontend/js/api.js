@@ -276,18 +276,26 @@ window.wasteAPI = {
     },
     async getLeaderboard(limit) {
         const client = await getClient();
-        const { data, error } = await client.from('leaderboard').select('*').limit(limit || 10);
-        if (error) throw error;
-        return { leaderboard: data };
+        try {
+            const { data } = await client.from('leaderboard').select('*').limit(limit || 10);
+            return { leaderboard: data || [] };
+        } catch (error) {
+            console.warn('Leaderboard load failed:', error.message);
+            return { leaderboard: [] };
+        }
     },
     async getUserSubmissions(status) {
         const client = await getClient();
         const userId = getCurrentUserId();
-        let query = client.from('waste_submissions').select('*').eq('user_id', userId);
-        if (status) query = query.eq('status', status);
-        const { data, error } = await query;
-        if (error) throw error;
-        return { submissions: data };
+        try {
+            let query = client.from('waste_submissions').select('*').eq('user_id', userId);
+            if (status) query = query.eq('status', status);
+            const { data } = await query;
+            return { submissions: data || [] };
+        } catch (error) {
+            console.warn('User submissions load failed:', error.message);
+            return { submissions: [] };
+        }
     }
 };
 

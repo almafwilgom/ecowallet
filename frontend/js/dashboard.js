@@ -112,6 +112,10 @@ async function loadActivity() {
             `;
         });
     } catch (error) {
+        const tbody = document.getElementById('activityBody');
+        if (tbody) {
+            tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: #B71C1C;">Unable to load activity</td></tr>';
+        }
         console.error('Error loading activity:', error);
     }
 }
@@ -125,6 +129,17 @@ async function loadCharts() {
         const materialCanvas = document.getElementById('materialChart');
         const co2Canvas = document.getElementById('co2Chart');
         if (!activityCanvas || !materialCanvas) return;
+
+        if (!submissions.length) {
+            if (recyclingChart) { recyclingChart.destroy(); recyclingChart = null; }
+            if (materialChart) { materialChart.destroy(); materialChart = null; }
+            if (co2Chart) { co2Chart.destroy(); co2Chart = null; }
+            const emptyMsg = 'No collected submissions yet';
+            activityCanvas.parentElement.innerHTML = `<div class="chart-empty">${emptyMsg}</div>`;
+            materialCanvas.parentElement.innerHTML = `<div class="chart-empty">${emptyMsg}</div>`;
+            if (co2Canvas) co2Canvas.parentElement.innerHTML = `<div class="chart-empty">${emptyMsg}</div>`;
+            return;
+        }
 
         const materialData = {};
         submissions.forEach(s => {
