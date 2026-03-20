@@ -41,24 +41,15 @@ document.addEventListener('DOMContentLoaded', () => {
     if (window.syncSupabaseSession) {
         window.syncSupabaseSession().then(() => {
             const storedUser = localStorage.getItem('user');
-            if (loginForm && storedUser) {
+            if ((loginForm || registerForm) && storedUser) {
                 try {
                     const parsedUser = JSON.parse(storedUser);
                     const destination = parsedUser?.role === 'admin' ? 'admin.html' : 
                                       parsedUser?.role === 'agent' ? 'agent.html' : 'dashboard.html';
-                    window.location.href = destination;
+                    window.location.replace(destination);
                     return;
                 } catch {
-                    // Optional catch binding (no 'err' needed)
-                }
-            } else if (registerForm && storedUser) {
-                try {
-                    const parsedUser = JSON.parse(storedUser);
-                    const destination = parsedUser?.role === 'admin' ? 'admin.html' : 
-                                      parsedUser?.role === 'agent' ? 'agent.html' : 'dashboard.html';
-                    showSessionMessage(parsedUser, destination, registerForm);
-                } catch {
-                    // Optional catch binding (no 'err' needed)
+                    // ignore bad JSON
                 }
             }
         }).catch(() => {});
