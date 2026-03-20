@@ -6,6 +6,24 @@
 const FALLBACK_SUPABASE_URL = window.ECOWALLET_SUPABASE_URL || 'https://eigitkparyebddjtoocd.supabase.co';
 const FALLBACK_SUPABASE_KEY = window.ECOWALLET_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVpZ2l0a3BhcnllYmRkanRvb2NkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2MTUzNDksImV4cCI6MjA4OTE5MTM0OX0.4eMrrwb7qoxJBg0JCKIJgPv7tQWKUKGVC0IWsWYyDQk';
 
+// Immediate redirect for signed-in users who open login/register pages
+(function redirectIfAlreadySignedIn() {
+    if (typeof window === 'undefined') return;
+    const path = window.location.pathname || '';
+    const isAuthPage = path.endsWith('/login.html') || path.endsWith('/register.html') || path.endsWith('login.html') || path.endsWith('register.html');
+    if (!isAuthPage) return;
+    const raw = localStorage.getItem('user');
+    if (!raw) return;
+    try {
+        const user = JSON.parse(raw);
+        const destination = user?.role === 'admin' ? '/admin.html' :
+                            user?.role === 'agent' ? '/agent.html' : '/dashboard.html';
+        window.location.replace(destination);
+    } catch (_) {
+        // ignore JSON errors
+    }
+})();
+
 document.addEventListener('DOMContentLoaded', () => {
     const loginForm = document.getElementById('loginForm');
     const registerForm = document.getElementById('registerForm');
