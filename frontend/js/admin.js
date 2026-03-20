@@ -234,7 +234,7 @@ async function handleCreateAgent(e) {
     } catch (error) {
         const msg = document.getElementById('agentMessage');
         if (msg) {
-            msg.textContent = error.message;
+            msg.textContent = error.message || 'Update failed';
             msg.className = 'form-message error';
             msg.style.display = 'block';
         } else {
@@ -257,7 +257,7 @@ async function handleCreateAdmin(e) {
     } catch (error) {
         const msg = document.getElementById('adminMessage');
         if (msg) {
-            msg.textContent = error.message;
+            msg.textContent = error.message || 'Update failed';
             msg.className = 'form-message error';
             msg.style.display = 'block';
         } else {

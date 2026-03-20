@@ -251,8 +251,9 @@ window.adminAPI = {
             .update({ role: 'agent', state })
             .eq('email', email)
             .select()
-            .single();
+            .maybeSingle();
         if (error) throw error;
+        if (!data) throw new Error('User not found');
         return { user: data };
     },
     async createAdmin({ email, state }) {
@@ -262,8 +263,9 @@ window.adminAPI = {
             .update({ role: 'admin', state })
             .eq('email', email)
             .select()
-            .single();
+            .maybeSingle();
         if (error) throw error;
+        if (!data) throw new Error('User not found');
         return { user: data };
     },
     async softDeleteUser(id) {
