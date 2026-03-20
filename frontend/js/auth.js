@@ -266,13 +266,9 @@ window.checkAuth = async function(requiredRole = null) {
         try { return JSON.parse(raw); } catch { return null; }
     };
 
-    let user = getStoredUser();
-
-    // Refresh session if missing or stale
-    if (!user) {
-        const refreshed = await window.syncSupabaseSession?.();
-        user = refreshed || getStoredUser();
-    }
+    // Always refresh from Supabase to pick up role changes (e.g., admin promotion)
+    const refreshed = await window.syncSupabaseSession?.();
+    let user = refreshed || getStoredUser();
 
     if (!user) {
         window.location.href = '/login.html';
