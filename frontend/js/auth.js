@@ -255,3 +255,42 @@ async function handlePasswordResetRequest() {
 async function handlePasswordResetConfirm() { 
     console.log("Reset confirmed.");
 }
+
+// Lightweight auth guard for dashboard/admin pages
+window.checkAuth = async function(requiredRole = null) {
+    await ensureAuthClientReady();
+
+    const getStoredUser = () => {
+        const raw = localStorage.getItem('user');
+        if (!raw) return null;
+        try { return JSON.parse(raw); } catch { return null; }
+    };
+
+    let user = getStoredUser();
+
+    // Refresh session if missing or stale
+    if (!user) {
+        const refreshed = await window.syncSupabaseSession?.();
+        user = refreshed || getStoredUser();
+    }
+
+    if (!user) {
+        window.location.href = '/login.html';
+        return null;
+    }
+
+    // Role enforcement
+    if (requiredRole && user.role !== requiredRole) {
+        const destination = user.role === 'admin' ? '/admin.html' :
+                            user.role === 'agent' ? '/agent.html' : '/dashboard.html';
+        if (destination !== window.location.pathname) {
+            window.location.href = destination;
+        }
+        return null;
+    }
+
+    // Ensure a friendly name fallback
+    user.name = user.name || (user.email ? user.email.split('@')[0] : 'Recycler');
+    localStorage.setItem('user', JSON.stringify(user));
+    return user;
+};
