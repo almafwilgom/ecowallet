@@ -201,6 +201,26 @@ function initGithubLogin() {
     }
 }
 
+// Shared logout wiring for any page containing #logoutBtn
+function setupLogout() {
+    const logoutBtn = document.getElementById('logoutBtn');
+    if (!logoutBtn) return;
+    logoutBtn.addEventListener('click', async (e) => {
+        e.preventDefault();
+        try {
+            if (window.authAPI?.logout) {
+                await window.authAPI.logout();
+                return;
+            }
+        } catch (err) {
+            console.error('Logout failed', err);
+        }
+        localStorage.removeItem('user');
+        localStorage.removeItem('token');
+        window.location.href = 'login.html';
+    });
+}
+
 async function handlePasswordResetRequest() { 
     console.log("Reset requested.");
 }

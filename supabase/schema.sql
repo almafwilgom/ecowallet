@@ -181,6 +181,7 @@ returns trigger
 language plpgsql
 security definer
 set search_path = public
+set row_security = off
 as $$
 declare
     uid bigint;
@@ -226,6 +227,7 @@ returns trigger
 language plpgsql
 security definer
 set search_path = public
+set row_security = off
 as $$
 begin
     update public.wallets
@@ -253,6 +255,7 @@ returns trigger
 language plpgsql
 security definer
 set search_path = public
+set row_security = off
 as $$
 declare
     uid bigint;
@@ -324,7 +327,8 @@ returns table(
     total_weight_kg numeric,
     total_co2_saved numeric,
     total_earned numeric,
-    wallet_balance numeric
+    wallet_balance numeric,
+    pending_withdrawal_amount numeric
 )
 language sql
 security definer
@@ -336,7 +340,8 @@ as $$
         coalesce(sum(case when ws.status = 'collected' then ws.weight_kg else 0 end), 0),
         coalesce(sum(case when ws.status = 'collected' then ws.co2_saved else 0 end), 0),
         coalesce(sum(case when ws.status = 'collected' then ws.payout else 0 end), 0),
-        coalesce(max(w.balance), 0)
+        coalesce(max(w.balance), 0),
+        coalesce((select sum(amount) from public.withdrawal_requests wr where wr.user_id = public.current_user_id() and wr.status = 'pending'), 0)
     from public.waste_submissions ws
     left join public.wallets w on ws.user_id = w.user_id
     where ws.user_id = public.current_user_id();
