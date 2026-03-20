@@ -23,12 +23,22 @@ document.addEventListener('DOMContentLoaded', () => {
     if (window.syncSupabaseSession) {
         window.syncSupabaseSession().then(() => {
             const storedUser = localStorage.getItem('user');
-            if ((loginForm || registerForm) && storedUser) {
+            if (loginForm && storedUser) {
                 try {
                     const parsedUser = JSON.parse(storedUser);
                     const destination = parsedUser?.role === 'admin' ? 'admin.html' : 
                                       parsedUser?.role === 'agent' ? 'agent.html' : 'dashboard.html';
-                    showSessionMessage(parsedUser, destination, loginForm || registerForm);
+                    window.location.href = destination;
+                    return;
+                } catch {
+                    // Optional catch binding (no 'err' needed)
+                }
+            } else if (registerForm && storedUser) {
+                try {
+                    const parsedUser = JSON.parse(storedUser);
+                    const destination = parsedUser?.role === 'admin' ? 'admin.html' : 
+                                      parsedUser?.role === 'agent' ? 'agent.html' : 'dashboard.html';
+                    showSessionMessage(parsedUser, destination, registerForm);
                 } catch {
                     // Optional catch binding (no 'err' needed)
                 }
@@ -210,7 +220,8 @@ function showSessionMessage(user, destination, form) {
     const continueLink = document.createElement('a');
     continueLink.href = destination;
     continueLink.className = 'btn btn-ghost btn-sm';
-    continueLink.textContent = 'Dashboard';
+    continueLink.textContent = destination.includes('admin') ? 'Admin Dashboard' :
+                               destination.includes('agent') ? 'Agent Dashboard' : 'Dashboard';
 
     const logoutBtn = document.createElement('button');
     logoutBtn.type = 'button';
