@@ -42,6 +42,39 @@ async function getClient() {
     return window.supabaseClient;
 }
 
+// Fetch profile from public.users, supporting either `id` (uuid) or `auth_id` schemas.
+async function fetchUserProfile(client, authUserId) {
+    const columns = 'id, auth_id, role, name, state, email, phone, address';
+
+    // First try `id` = auth user id (current schema)
+    try {
+        const { data, error } = await client
+            .from('users')
+            .select(columns)
+            .eq('id', authUserId)
+            .maybeSingle();
+        if (data) return data;
+        if (error && error.code !== 'PGRST116') console.warn('Profile lookup by id error', error.message);
+    } catch (err) {
+        console.warn('Profile lookup by id failed', err?.message);
+    }
+
+    // Fallback for legacy schema where auth_id stores the auth user id
+    try {
+        const { data, error } = await client
+            .from('users')
+            .select(columns)
+            .eq('auth_id', authUserId)
+            .maybeSingle();
+        if (data) return data;
+        if (error && error.code !== 'PGRST116') console.warn('Profile lookup by auth_id error', error.message);
+    } catch (err) {
+        console.warn('Profile lookup by auth_id failed', err?.message);
+    }
+
+    return null;
+}
+
 function getCurrentUserId() {
     const userStr = localStorage.getItem('user');
     return userStr ? JSON.parse(userStr).id : null;
@@ -56,14 +89,15 @@ window.authAPI = {
         });
         
         if (error) throw error;
-        
-        // Fetch user profile from 'users' table if needed, or construct from metadata
+        // Prefer role/name/state from profile table to avoid stale metadata
+        const profile = await fetchUserProfile(client, data.user.id);
+
         const user = {
             id: data.user.id,
             email: data.user.email,
-            name: data.user.user_metadata?.name || data.user.email.split('@')[0],
-            role: data.user.user_metadata?.role || 'user',
-            state: data.user.user_metadata?.state
+            name: profile?.name || data.user.user_metadata?.name || data.user.email.split('@')[0],
+            role: profile?.role || data.user.user_metadata?.role || 'user',
+            state: profile?.state || data.user.user_metadata?.state || ''
         };
         
         localStorage.setItem('user', JSON.stringify(user));
@@ -298,12 +332,13 @@ window.syncSupabaseSession = async function() {
         const client = await getClient();
         const { data } = await client.auth.getSession();
         if (data.session?.user) {
+            const profile = await fetchUserProfile(client, data.session.user.id);
             const user = {
                 id: data.session.user.id,
                 email: data.session.user.email,
-                name: data.session.user.user_metadata?.name,
-                role: data.session.user.user_metadata?.role || 'user',
-                state: data.session.user.user_metadata?.state
+                name: profile?.name || data.session.user.user_metadata?.name || data.session.user.email?.split('@')[0],
+                role: profile?.role || data.session.user.user_metadata?.role || 'user',
+                state: profile?.state || data.session.user.user_metadata?.state
             };
             localStorage.setItem('user', JSON.stringify(user));
             return user;
