@@ -4,8 +4,10 @@ let materialChart = null;
 let co2Chart = null;
 
 document.addEventListener('DOMContentLoaded', async () => {
-    const user = await checkAuth('user');
-    setupLogout();
+    const user = await (window.checkAuth ? window.checkAuth('user') : null);
+    if (typeof window.setupLogout === 'function') {
+        window.setupLogout();
+    }
 
     if (user) {
         const welcomeName = document.getElementById('welcomeName');

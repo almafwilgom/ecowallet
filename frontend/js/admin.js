@@ -6,11 +6,11 @@
 
 document.addEventListener('DOMContentLoaded', async () => {
     try {
-        const user = await checkAuth('admin'); 
+        const user = await (window.checkAuth ? window.checkAuth('admin') : null); 
         if (!user) return;
 
-        if (typeof setupLogout === 'function') {
-            setupLogout();
+        if (typeof window.setupLogout === 'function') {
+            window.setupLogout();
         }
 
         await loadAdminData();
