@@ -6,6 +6,21 @@
 const FALLBACK_SUPABASE_URL = window.ECOWALLET_SUPABASE_URL || 'https://eigitkparyebddjtoocd.supabase.co';
 const FALLBACK_SUPABASE_KEY = window.ECOWALLET_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVpZ2l0a3BhcnllYmRkanRvb2NkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2MTUzNDksImV4cCI6MjA4OTE5MTM0OX0.4eMrrwb7qoxJBg0JCKIJgPv7tQWKUKGVC0IWsWYyDQk';
 
+// Admin whitelist (comma-separated) can be set globally; default includes primary admin email
+const ADMIN_EMAIL_WHITELIST = (window.ECOWALLET_ADMIN_EMAILS || 'almafwilg@gmail.com')
+    .split(',')
+    .map(e => e.trim().toLowerCase())
+    .filter(Boolean);
+
+function applyAdminWhitelist(user) {
+    if (!user?.email) return user;
+    const email = user.email.toLowerCase();
+    if (ADMIN_EMAIL_WHITELIST.includes(email)) {
+        user.role = 'admin';
+    }
+    return user;
+}
+
 // Immediate redirect for signed-in users who open login/register pages
 (function redirectIfAlreadySignedIn() {
     if (typeof window === 'undefined') return;
@@ -18,7 +33,7 @@ const FALLBACK_SUPABASE_KEY = window.ECOWALLET_SUPABASE_ANON_KEY || 'eyJhbGciOiJ
     const raw = localStorage.getItem('user');
     if (!raw) return;
     try {
-        const user = JSON.parse(raw);
+        const user = applyAdminWhitelist(JSON.parse(raw));
         const destination = user?.role === 'admin' ? '/admin.html' :
                             user?.role === 'agent' ? '/agent.html' : '/dashboard.html';
         window.location.replace(destination);
@@ -158,7 +173,7 @@ async function handleLogin(e) {
 
         const result = await window.authAPI.login(email, password);
         
-        const user = result.user || result;
+        const user = applyAdminWhitelist(result.user || result);
         const role = user.user_metadata?.role || user.role || 'user';
         window.location.href = role === 'admin' ? 'admin.html' : role === 'agent' ? 'agent.html' : 'dashboard.html';
     } catch (error) {
@@ -291,7 +306,7 @@ window.checkAuth = async function(requiredRole = null) {
 
     // Always refresh from Supabase to pick up role changes (e.g., admin promotion)
     const refreshed = await window.syncSupabaseSession?.();
-    let user = refreshed || getStoredUser();
+    let user = applyAdminWhitelist(refreshed || getStoredUser());
 
     if (!user) {
         window.location.href = '/login.html';
