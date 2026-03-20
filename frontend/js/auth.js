@@ -12,6 +12,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const resetRequestForm = document.getElementById('resetRequestForm');
     const resetConfirmForm = document.getElementById('resetConfirmForm');
 
+    // Wire navbar logout buttons if present
+    setupLogout();
+
     // Ensure the API layer is available even if api.js failed to load earlier.
     // This gives us a second chance to lazy-load the client before any form submission.
     ensureAuthClientReady().catch(() => {});
