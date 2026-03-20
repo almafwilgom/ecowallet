@@ -244,11 +244,27 @@ window.adminAPI = {
         if (error) throw error;
         return { users: data };
     },
-    async createAgent() {
-        throw new Error('Creating agents requires Supabase Admin Dashboard or Edge Functions.');
+    async createAgent({ email, state }) {
+        const client = await getClient();
+        const { data, error } = await client
+            .from('users')
+            .update({ role: 'agent', state })
+            .eq('email', email)
+            .select()
+            .single();
+        if (error) throw error;
+        return { user: data };
     },
-    async createAdmin() {
-        throw new Error('Creating admins requires Supabase Admin Dashboard or Edge Functions.');
+    async createAdmin({ email, state }) {
+        const client = await getClient();
+        const { data, error } = await client
+            .from('users')
+            .update({ role: 'admin', state })
+            .eq('email', email)
+            .select()
+            .single();
+        if (error) throw error;
+        return { user: data };
     },
     async softDeleteUser(id) {
         const client = await getClient();

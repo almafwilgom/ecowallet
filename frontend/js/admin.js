@@ -223,25 +223,45 @@ window.hardDeleteUserAccount = async (id, name) => {
 async function handleCreateAgent(e) {
     e.preventDefault();
     try {
-        const email = document.getElementById('agentEmail').value;
-        const state = document.getElementById('agentState').value;
+        const email = document.getElementById('agentEmail').value.trim();
+        const state = document.getElementById('agentState').value.trim();
         await adminAPI.createAgent({ email, state });
+        document.getElementById('agentMessage').textContent = 'Role updated to agent.';
+        document.getElementById('agentMessage').className = 'form-message success';
+        document.getElementById('agentMessage').style.display = 'block';
         e.target.reset();
         await loadAllUsers();
     } catch (error) {
-        alert(error.message);
+        const msg = document.getElementById('agentMessage');
+        if (msg) {
+            msg.textContent = error.message;
+            msg.className = 'form-message error';
+            msg.style.display = 'block';
+        } else {
+            alert(error.message);
+        }
     }
 }
 
 async function handleCreateAdmin(e) {
     e.preventDefault();
     try {
-        const email = document.getElementById('adminEmail').value;
-        const state = document.getElementById('adminState').value;
+        const email = document.getElementById('adminEmail').value.trim();
+        const state = document.getElementById('adminState').value.trim();
         await adminAPI.createAdmin({ email, state });
+        document.getElementById('adminMessage').textContent = 'Role updated to admin.';
+        document.getElementById('adminMessage').className = 'form-message success';
+        document.getElementById('adminMessage').style.display = 'block';
         e.target.reset();
         await loadAllUsers();
     } catch (error) {
-        alert(error.message);
+        const msg = document.getElementById('adminMessage');
+        if (msg) {
+            msg.textContent = error.message;
+            msg.className = 'form-message error';
+            msg.style.display = 'block';
+        } else {
+            alert(error.message);
+        }
     }
 }
