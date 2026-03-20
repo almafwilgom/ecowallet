@@ -10,6 +10,23 @@ console.log("API.JS LOADED");
 const supabaseUrl = window.ECOWALLET_SUPABASE_URL || 'https://eigitkparyebddjtoocd.supabase.co';
 const supabaseKey = window.ECOWALLET_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVpZ2l0a3BhcnllYmRkanRvb2NkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2MTUzNDksImV4cCI6MjA4OTE5MTM0OX0.4eMrrwb7qoxJBg0JCKIJgPv7tQWKUKGVC0IWsWYyDQk';
 
+// Lightweight UI helpers (exposed globally for other modules)
+window.formatCurrency = window.formatCurrency || function formatCurrency(value) {
+    const num = Number(value || 0);
+    return `₦${num.toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+};
+
+window.formatDate = window.formatDate || function formatDate(value) {
+    if (!value) return '—';
+    const d = new Date(value);
+    return d.toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+};
+
+window.formatWeight = window.formatWeight || function formatWeight(value) {
+    const num = Number(value || 0);
+    return `${num.toFixed(2)} kg`;
+};
+
 // Ensures Supabase is available even if the CDN script was removed.
 let supabaseReadyPromise = null;
 async function loadSupabaseLibrary() {
