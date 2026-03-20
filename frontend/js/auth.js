@@ -50,7 +50,7 @@ async function ensureAuthClientReady() {
         ensureAuthClientReady._loading = (async () => {
             try {
                 // Attempt to load the shared API bundle first (preferred path)
-                await import('./js/api.js');
+                await import('./api.js');
             } catch (err) {
                 console.warn('api.js did not load via script tag; attempting inline fallback.', err);
             }

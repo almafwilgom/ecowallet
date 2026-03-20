@@ -132,6 +132,7 @@ returns trigger
 language plpgsql
 security definer
 set search_path = public
+set row_security = off
 as $$
 declare
     display_name text;
