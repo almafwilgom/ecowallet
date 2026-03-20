@@ -9,8 +9,11 @@ const FALLBACK_SUPABASE_KEY = window.ECOWALLET_SUPABASE_ANON_KEY || 'eyJhbGciOiJ
 // Immediate redirect for signed-in users who open login/register pages
 (function redirectIfAlreadySignedIn() {
     if (typeof window === 'undefined') return;
-    const path = window.location.pathname || '';
-    const isAuthPage = path.endsWith('/login.html') || path.endsWith('/register.html') || path.endsWith('login.html') || path.endsWith('register.html');
+    const path = (window.location.pathname || '').toLowerCase();
+    const isAuthPage =
+        path === '/login' || path === '/register' ||
+        path.endsWith('/login') || path.endsWith('/register') ||
+        path.endsWith('/login.html') || path.endsWith('/register.html');
     if (!isAuthPage) return;
     const raw = localStorage.getItem('user');
     if (!raw) return;
