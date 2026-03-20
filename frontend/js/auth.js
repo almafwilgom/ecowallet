@@ -3,11 +3,18 @@
  * Status: Fixed Syntax Errors | No Linting Issues
  */
 
+const FALLBACK_SUPABASE_URL = window.ECOWALLET_SUPABASE_URL || 'https://eigitkparyebddjtoocd.supabase.co';
+const FALLBACK_SUPABASE_KEY = window.ECOWALLET_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVpZ2l0a3BhcnllYmRkanRvb2NkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2MTUzNDksImV4cCI6MjA4OTE5MTM0OX0.4eMrrwb7qoxJBg0JCKIJgPv7tQWKUKGVC0IWsWYyDQk';
+
 document.addEventListener('DOMContentLoaded', () => {
     const loginForm = document.getElementById('loginForm');
     const registerForm = document.getElementById('registerForm');
     const resetRequestForm = document.getElementById('resetRequestForm');
     const resetConfirmForm = document.getElementById('resetConfirmForm');
+
+    // Ensure the API layer is available even if api.js failed to load earlier.
+    // This gives us a second chance to lazy-load the client before any form submission.
+    ensureAuthClientReady().catch(() => {});
 
     // 1. SESSION SYNC
     if (window.syncSupabaseSession) {
@@ -35,6 +42,78 @@ document.addEventListener('DOMContentLoaded', () => {
     initGithubLogin();
 });
 
+// --- HELPERS ---
+async function ensureAuthClientReady() {
+    if (window.authAPI) return;
+
+    if (!ensureAuthClientReady._loading) {
+        ensureAuthClientReady._loading = (async () => {
+            try {
+                // Attempt to load the shared API bundle first (preferred path)
+                await import('./js/api.js');
+            } catch (err) {
+                console.warn('api.js did not load via script tag; attempting inline fallback.', err);
+            }
+
+            // Fallback: build a minimal authAPI in-place using Supabase ESM
+            if (!window.authAPI) {
+                try {
+                    const { createClient } = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');
+                    const client = createClient(FALLBACK_SUPABASE_URL, FALLBACK_SUPABASE_KEY);
+
+                    window.authAPI = {
+                        async login(email, password) {
+                            const { data, error } = await client.auth.signInWithPassword({ email, password });
+                            if (error) throw error;
+
+                            const user = {
+                                id: data.user.id,
+                                email: data.user.email,
+                                name: data.user.user_metadata?.name || data.user.email.split('@')[0],
+                                role: data.user.user_metadata?.role || 'user',
+                                state: data.user.user_metadata?.state
+                            };
+
+                            localStorage.setItem('user', JSON.stringify(user));
+                            return { user, session: data.session };
+                        },
+                        async register(userData) {
+                            const { data, error } = await client.auth.signUp({
+                                email: userData.email,
+                                password: userData.password,
+                                options: {
+                                    data: {
+                                        name: userData.name,
+                                        state: userData.state,
+                                        phone: userData.phone,
+                                        address: userData.address,
+                                        role: 'user'
+                                    }
+                                }
+                            });
+                            if (error) throw error;
+                            return data;
+                        },
+                        async logout() {
+                            await client.auth.signOut();
+                            localStorage.removeItem('user');
+                            window.location.href = '/login.html';
+                        }
+                    };
+                } catch (fallbackErr) {
+                    console.error('Fallback Supabase client failed to initialize.', fallbackErr);
+                }
+            }
+        })();
+    }
+
+    await ensureAuthClientReady._loading;
+
+    if (!window.authAPI) {
+        throw new Error('API client not ready. Please refresh the page.');
+    }
+}
+
 // --- AUTHENTICATION FUNCTIONS ---
 
 async function handleLogin(e) {
@@ -47,13 +126,10 @@ async function handleLogin(e) {
         submitBtn.disabled = true;
         submitBtn.textContent = 'Verifying...';
 
+        await ensureAuthClientReady();
+
         const email = document.getElementById('email').value.trim();
         const password = document.getElementById('password').value;
-
-        if (!window.authAPI) {
-            console.error('window.authAPI is undefined. Check if api.js loaded correctly.');
-            throw new Error('API client not ready. Please refresh the page.');
-        }
 
         const result = await window.authAPI.login(email, password);
         
@@ -78,10 +154,7 @@ async function handleRegister(e) {
         submitBtn.disabled = true;
         submitBtn.textContent = 'Creating Account...';
 
-        if (!window.authAPI) {
-            console.error('window.authAPI is undefined. Check if api.js loaded correctly.');
-            throw new Error('API client not ready. Please refresh the page.');
-        }
+        await ensureAuthClientReady();
 
         const name = document.getElementById('name').value.trim();
         const email = document.getElementById('email').value.trim();

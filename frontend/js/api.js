@@ -295,7 +295,7 @@ window.walletAPI = {
 // Session Sync Shim (keeps compatibility with existing auth.js)
 window.syncSupabaseSession = async function() {
     try {
-        const client = getClient();
+        const client = await getClient();
         const { data } = await client.auth.getSession();
         if (data.session?.user) {
             const user = {

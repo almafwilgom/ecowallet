@@ -1,7 +1,10 @@
 /* eslint-env node */
-/* global require, __dirname */
-const fs = require('fs');
-const path = require('path');
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Fix: Scan the parent directory (frontend/) where HTML files are located
 const dir = path.join(__dirname, '..');
@@ -13,6 +16,13 @@ files.forEach(file => {
     const filePath = path.join(dir, file);
     let content = fs.readFileSync(filePath, 'utf8');
     let updated = false;
+    
+    // Ensure a root <base> tag exists so asset paths resolve on Cloudflare/clean URLs
+    const baseRegex = /<base\s+href=["']\/["'][^>]*>/i;
+    if (!baseRegex.test(content)) {
+        content = content.replace(/<head([^>]*)>/i, `<head$1>\n    <base href="/">`);
+        updated = true;
+    }
     
     // Regex to match script src="js/api.js" without type="module"
     const apiRegex = /<script\s+(?:[^>]*?\s+)?src=["']\/?js\/api\.js["'][^>]*><\/script>/gi;
