@@ -10,14 +10,33 @@ console.log("API.JS LOADED");
 const supabaseUrl = window.ECOWALLET_SUPABASE_URL || 'https://eigitkparyebddjtoocd.supabase.co';
 const supabaseKey = window.ECOWALLET_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVpZ2l0a3BhcnllYmRkanRvb2NkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2MTUzNDksImV4cCI6MjA4OTE5MTM0OX0.4eMrrwb7qoxJBg0JCKIJgPv7tQWKUKGVC0IWsWYyDQk';
 
-function getClient() {
+// Ensures Supabase is available even if the CDN script was removed.
+let supabaseReadyPromise = null;
+async function loadSupabaseLibrary() {
+    if (window.supabase?.createClient) return window.supabase;
+
+    if (!supabaseReadyPromise) {
+        supabaseReadyPromise = import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm')
+            .then(mod => mod?.createClient ? mod : mod?.default)
+            .then(lib => {
+                if (!lib?.createClient) throw new Error('Supabase library not loaded.');
+                if (!window.supabase) window.supabase = lib; // expose for other scripts
+                return window.supabase;
+            })
+            .catch(err => {
+                supabaseReadyPromise = null;
+                console.error('Failed to load Supabase library', err);
+                throw new Error('Supabase not connected. Refresh page or check config.');
+            });
+    }
+
+    return supabaseReadyPromise;
+}
+
+async function getClient() {
     if (!window.supabaseClient) {
-        const createClient = window.supabase ? window.supabase.createClient : null;
-        if (!createClient) {
-            console.error('Supabase library not loaded. Check script tags in HTML.');
-            throw new Error('Supabase not connected. Refresh page or check config.');
-        }
-        window.supabaseClient = createClient(supabaseUrl, supabaseKey);
+        const supabaseLib = await loadSupabaseLibrary();
+        window.supabaseClient = supabaseLib.createClient(supabaseUrl, supabaseKey);
         console.log("Supabase initialized");
     }
     return window.supabaseClient;
@@ -30,7 +49,8 @@ function getCurrentUserId() {
 
 window.authAPI = {
     async login(email, password) {
-        const { data, error } = await getClient().auth.signInWithPassword({
+        const client = await getClient();
+        const { data, error } = await client.auth.signInWithPassword({
             email,
             password
         });
@@ -51,7 +71,8 @@ window.authAPI = {
         return { user, session: data.session };
     },
     async register(userData) {
-        const { data, error } = await getClient().auth.signUp({
+        const client = await getClient();
+        const { data, error } = await client.auth.signUp({
             email: userData.email,
             password: userData.password,
             options: {
@@ -68,7 +89,8 @@ window.authAPI = {
         return data;
     },
     async logout() {
-        await getClient().auth.signOut();
+        const client = await getClient();
+        await client.auth.signOut();
         localStorage.removeItem('user');
         window.location.href = '/login.html';
     }
@@ -76,39 +98,53 @@ window.authAPI = {
 
 window.agentAPI = {
     async getAgentStats() {
-        const { data, error } = await getClient().rpc('get_agent_stats'); // Assuming RPC or view
+        const client = await getClient();
+        const { data, error } = await client.rpc('get_agent_stats'); // Assuming RPC or view
         if (error) {
              // Fallback to manual calc if RPC missing
              const userId = getCurrentUserId();
-             const { count } = await getClient().from('waste_submissions')
+             const { count } = await client.from('waste_submissions')
                 .select('*', { count: 'exact', head: true })
                 .eq('agent_id', userId).eq('status', 'collected');
              return { stats: { total_collections: count || 0 } };
         }
         return { stats: data || {} };
     },
-    async getPendingCollections() {
-        const { data, error } = await getClient().from('waste_submissions')
-            .select('*, users:user_id(name)') // Join logic depends on Supabase setup
-            .eq('status', 'pending');
+    async getPendingSubmissions() {
+        const client = await getClient();
+        const { data, error } = await client
+            .from('waste_submissions')
+            .select('id, material_type, weight_kg, location, payout, created_at, user_id, users:users!waste_submissions_user_id_fkey(name)')
+            .eq('status', 'pending')
+            .order('created_at', { ascending: true });
         if (error) throw error;
-        // Map join result if necessary
-        const mapped = data.map(d => ({...d, user_name: d.users?.name}));
-        return { collections: mapped };
+        const mapped = (data || []).map(row => ({
+            ...row,
+            user_name: row.users?.name || 'Unknown'
+        }));
+        return { submissions: mapped };
     },
-    async getRecentCollections() {
+    async getCollectedSubmissions() {
+        const client = await getClient();
         const userId = getCurrentUserId();
-        const { data, error } = await getClient().from('waste_submissions')
-            .select('*, users:user_id(name)')
+        const { data, error } = await client
+            .from('waste_submissions')
+            .select('id, material_type, weight_kg, payout, co2_saved, updated_at, user_id, agent_id, users:users!waste_submissions_user_id_fkey(name)')
+            .eq('status', 'collected')
             .eq('agent_id', userId)
-            .eq('status', 'collected');
+            .order('updated_at', { ascending: false })
+            .limit(50);
         if (error) throw error;
-        const mapped = data.map(d => ({...d, user_name: d.users?.name}));
-        return { collections: mapped };
+        const mapped = (data || []).map(row => ({
+            ...row,
+            user_name: row.users?.name || 'Unknown'
+        }));
+        return { submissions: mapped };
     },
     async updateCollectionStatus(id, status) {
+        const client = await getClient();
         const userId = getCurrentUserId();
-        const { error } = await getClient().from('waste_submissions')
+        const { error } = await client.from('waste_submissions')
             .update({ status, agent_id: userId })
             .eq('id', id);
         if (error) throw error;
@@ -118,12 +154,14 @@ window.agentAPI = {
 
 window.adminAPI = {
     async getPlatformStats() {
-        const { data, error } = await getClient().from('platform_stats').select('*').single();
+        const client = await getClient();
+        const { data, error } = await client.from('platform_stats').select('*').single();
         if (error) throw error;
         return { stats: data };
     },
     async getPendingWithdrawals() {
-        const { data, error } = await getClient().from('withdrawal_requests')
+        const client = await getClient();
+        const { data, error } = await client.from('withdrawal_requests')
             .select('*, users:user_id(name, email)')
             .eq('status', 'pending');
         if (error) throw error;
@@ -131,14 +169,16 @@ window.adminAPI = {
         return { withdrawals: mapped };
     },
     async approveWithdrawal(id, status) {
-        const { error } = await getClient().from('withdrawal_requests')
+        const client = await getClient();
+        const { error } = await client.from('withdrawal_requests')
             .update({ status })
             .eq('id', id);
         if (error) throw error;
         return { message: 'Updated' };
     },
     async getAllSubmissions(status) {
-        let query = getClient().from('waste_submissions').select('*, users:user_id(name), agent:agent_id(name)');
+        const client = await getClient();
+        let query = client.from('waste_submissions').select('*, users:user_id(name), agent:agent_id(name)');
         if (status) query = query.eq('status', status);
         const { data, error } = await query;
         if (error) throw error;
@@ -146,7 +186,8 @@ window.adminAPI = {
         return { submissions: mapped };
     },
     async getAllUsers(role) {
-        let query = getClient().from('users').select('*');
+        const client = await getClient();
+        let query = client.from('users').select('*');
         if (role) query = query.eq('role', role);
         const { data, error } = await query;
         if (error) throw error;
@@ -159,11 +200,13 @@ window.adminAPI = {
         throw new Error('Creating admins requires Supabase Admin Dashboard or Edge Functions.');
     },
     async softDeleteUser(id) {
-        const { error } = await getClient().from('users').update({ deleted_at: new Date() }).eq('id', id);
+        const client = await getClient();
+        const { error } = await client.from('users').update({ deleted_at: new Date() }).eq('id', id);
         if (error) throw error;
     },
     async restoreUser(id) {
-        const { error } = await getClient().from('users').update({ deleted_at: null }).eq('id', id);
+        const client = await getClient();
+        const { error } = await client.from('users').update({ deleted_at: null }).eq('id', id);
         if (error) throw error;
     },
     async deleteUser() {
@@ -174,8 +217,9 @@ window.adminAPI = {
 
 window.wasteAPI = {
     async submitWaste(data) {
+        const client = await getClient();
         const userId = getCurrentUserId();
-        const { data: result, error } = await getClient().from('waste_submissions').insert({
+        const { data: result, error } = await client.from('waste_submissions').insert({
             user_id: userId,
             material_type: data.material_type,
             weight_kg: data.weight_kg,
@@ -190,19 +234,22 @@ window.wasteAPI = {
         return { message: 'Waste submitted', submission: result };
     },
     async getUserStats() {
+        const client = await getClient();
         const userId = getCurrentUserId();
-        const { data, error } = await getClient().from('user_stats').select('*').eq('id', userId).single();
+        const { data, error } = await client.from('user_stats').select('*').eq('id', userId).single();
         if (error) return { stats: {} }; // Stats might be empty for new user
         return { stats: data };
     },
     async getLeaderboard(limit) {
-        const { data, error } = await getClient().from('leaderboard').select('*').limit(limit || 10);
+        const client = await getClient();
+        const { data, error } = await client.from('leaderboard').select('*').limit(limit || 10);
         if (error) throw error;
         return { leaderboard: data };
     },
     async getUserSubmissions(status) {
+        const client = await getClient();
         const userId = getCurrentUserId();
-        let query = getClient().from('waste_submissions').select('*').eq('user_id', userId);
+        let query = client.from('waste_submissions').select('*').eq('user_id', userId);
         if (status) query = query.eq('status', status);
         const { data, error } = await query;
         if (error) throw error;
@@ -212,14 +259,16 @@ window.wasteAPI = {
 
 window.walletAPI = {
     async getBalance() {
+        const client = await getClient();
         const userId = getCurrentUserId();
-        const { data, error } = await getClient().from('wallets').select('balance').eq('user_id', userId).single();
+        const { data, error } = await client.from('wallets').select('balance').eq('user_id', userId).single();
         if (error) return { wallet: { balance: 0 } };
         return { wallet: data };
     },
     async requestWithdrawal(data) {
+        const client = await getClient();
         const userId = getCurrentUserId();
-        const { data: result, error } = await getClient().from('withdrawal_requests').insert({
+        const { data: result, error } = await client.from('withdrawal_requests').insert({
             user_id: userId,
             amount: data.amount,
             method: data.method,
@@ -235,8 +284,9 @@ window.walletAPI = {
         return { withdrawal: result };
     },
     async getWithdrawals() {
+        const client = await getClient();
         const userId = getCurrentUserId();
-        const { data, error } = await getClient().from('withdrawal_requests').select('*').eq('user_id', userId);
+        const { data, error } = await client.from('withdrawal_requests').select('*').eq('user_id', userId);
         if (error) throw error;
         return { withdrawals: data };
     }
