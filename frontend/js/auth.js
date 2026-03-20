@@ -33,6 +33,15 @@ function applyAdminWhitelist(user) {
 (function redirectIfAlreadySignedIn() {
     if (typeof window === 'undefined') return;
     if (!isAuthPage()) return;
+
+    // Allow manual override to switch accounts: ?switch=1 or ?logout=1 or ?force=1
+    const params = new URLSearchParams(window.location.search || '');
+    const forceLogin = params.has('switch') || params.has('logout') || params.has('force');
+    if (forceLogin) {
+        localStorage.removeItem('user');
+        return; // show the form
+    }
+
     const raw = localStorage.getItem('user');
     if (!raw) return;
     try {
