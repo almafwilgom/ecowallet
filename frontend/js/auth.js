@@ -183,15 +183,39 @@ async function handleRegister(e) {
 function showSessionMessage(user, destination, form) {
     const sessionDiv = document.getElementById('sessionMessage');
     if (!sessionDiv) return;
-    
-    sessionDiv.innerHTML = `<span>Signed in as ${user.email}</span> 
-                            <a href="${destination}" class="btn btn-sm">Dashboard</a>`;
+
+    const logoutHandler = async () => {
+        try {
+            if (window.authAPI?.logout) {
+                await window.authAPI.logout();
+                return;
+            }
+        } catch (err) {
+            console.error('Logout failed', err);
+        }
+        localStorage.removeItem('user');
+        localStorage.removeItem('token');
+        window.location.reload();
+    };
+
+    sessionDiv.innerHTML = '';
     sessionDiv.style.display = 'flex';
-    
-    if (form) {
-        const submitBtn = form.querySelector('button[type="submit"]');
-        if (submitBtn) submitBtn.disabled = true;
-    }
+
+    const label = document.createElement('span');
+    label.textContent = `Signed in as ${user.email}`;
+
+    const continueLink = document.createElement('a');
+    continueLink.href = destination;
+    continueLink.className = 'btn btn-ghost btn-sm';
+    continueLink.textContent = 'Dashboard';
+
+    const logoutBtn = document.createElement('button');
+    logoutBtn.type = 'button';
+    logoutBtn.className = 'btn btn-primary btn-sm';
+    logoutBtn.textContent = 'Log out to register';
+    logoutBtn.addEventListener('click', logoutHandler);
+
+    sessionDiv.append(label, continueLink, logoutBtn);
 }
 
 function initGithubLogin() {
