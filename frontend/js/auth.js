@@ -6,6 +6,14 @@
 const FALLBACK_SUPABASE_URL = window.ECOWALLET_SUPABASE_URL || 'https://eigitkparyebddjtoocd.supabase.co';
 const FALLBACK_SUPABASE_KEY = window.ECOWALLET_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVpZ2l0a3BhcnllYmRkanRvb2NkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2MTUzNDksImV4cCI6MjA4OTE5MTM0OX0.4eMrrwb7qoxJBg0JCKIJgPv7tQWKUKGVC0IWsWYyDQk';
 
+function isAuthPage() {
+    if (typeof window === 'undefined') return false;
+    const path = (window.location.pathname || '').toLowerCase();
+    return path === '/login' || path === '/register' ||
+           path.endsWith('/login') || path.endsWith('/register') ||
+           path.endsWith('/login.html') || path.endsWith('/register.html');
+}
+
 // Admin whitelist (comma-separated) can be set globally; default includes primary admin email
 const ADMIN_EMAIL_WHITELIST = (window.ECOWALLET_ADMIN_EMAILS || 'almafwilg@gmail.com')
     .split(',')
@@ -24,12 +32,7 @@ function applyAdminWhitelist(user) {
 // Immediate redirect for signed-in users who open login/register pages
 (function redirectIfAlreadySignedIn() {
     if (typeof window === 'undefined') return;
-    const path = (window.location.pathname || '').toLowerCase();
-    const isAuthPage =
-        path === '/login' || path === '/register' ||
-        path.endsWith('/login') || path.endsWith('/register') ||
-        path.endsWith('/login.html') || path.endsWith('/register.html');
-    if (!isAuthPage) return;
+    if (!isAuthPage()) return;
     const raw = localStorage.getItem('user');
     if (!raw) return;
     try {
@@ -59,7 +62,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (window.syncSupabaseSession) {
         window.syncSupabaseSession().then(() => {
             const storedUser = localStorage.getItem('user');
-            if ((loginForm || registerForm) && storedUser) {
+            if (isAuthPage() && storedUser) {
                 try {
                     const parsedUser = JSON.parse(storedUser);
                     const destination = parsedUser?.role === 'admin' ? 'admin.html' : 
@@ -68,6 +71,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     return;
                 } catch {
                     // ignore bad JSON
+                }
+            }
+            // Hide any session message banner on auth pages
+            if (isAuthPage()) {
+                const sessionDiv = document.getElementById('sessionMessage');
+                if (sessionDiv) {
+                    sessionDiv.style.display = 'none';
+                    sessionDiv.innerHTML = '';
                 }
             }
         }).catch(() => {});
