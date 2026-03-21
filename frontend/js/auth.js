@@ -29,26 +29,26 @@ function applyAdminWhitelist(user) {
     return user;
 }
 
-// Immediate redirect for signed-in users who open login/register pages
-(function redirectIfAlreadySignedIn() {
+// On auth pages, if a session exists, show banner instead of redirect so user can switch accounts
+(function showSessionIfSignedIn() {
     if (typeof window === 'undefined') return;
     if (!isAuthPage()) return;
 
-    // Allow manual override to switch accounts: ?switch=1 or ?logout=1 or ?force=1
+    // Allow manual override to clear cached session: ?switch=1 or ?logout=1 or ?force=1
     const params = new URLSearchParams(window.location.search || '');
     const forceLogin = params.has('switch') || params.has('logout') || params.has('force');
     if (forceLogin) {
         localStorage.removeItem('user');
-        return; // show the form
+        return;
     }
 
     const raw = localStorage.getItem('user');
     if (!raw) return;
     try {
         const user = applyAdminWhitelist(JSON.parse(raw));
-        const destination = user?.role === 'admin' ? '/admin.html' :
-                            user?.role === 'agent' ? '/agent.html' : '/dashboard.html';
-        window.location.replace(destination);
+        const destination = user?.role === 'admin' ? 'admin.html' :
+                            user?.role === 'agent' ? 'agent.html' : 'dashboard.html';
+        showSessionMessage(user, destination, document.getElementById('loginForm') || document.getElementById('registerForm'));
     } catch (_) {
         // ignore JSON errors
     }
@@ -69,26 +69,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 1. SESSION SYNC
     if (window.syncSupabaseSession) {
-        window.syncSupabaseSession().then(() => {
-            const storedUser = localStorage.getItem('user');
-            if (isAuthPage() && storedUser) {
-                try {
-                    const parsedUser = JSON.parse(storedUser);
-                    const destination = parsedUser?.role === 'admin' ? 'admin.html' : 
-                                      parsedUser?.role === 'agent' ? 'agent.html' : 'dashboard.html';
-                    window.location.replace(destination);
-                    return;
-                } catch {
-                    // ignore bad JSON
-                }
-            }
-            // Hide any session message banner on auth pages
-            if (isAuthPage()) {
-                const sessionDiv = document.getElementById('sessionMessage');
-                if (sessionDiv) {
-                    sessionDiv.style.display = 'none';
-                    sessionDiv.innerHTML = '';
-                }
+        window.syncSupabaseSession().then((freshUser) => {
+            if (isAuthPage() && freshUser) {
+                const destination = freshUser?.role === 'admin' ? 'admin.html' : 
+                                    freshUser?.role === 'agent' ? 'agent.html' : 'dashboard.html';
+                showSessionMessage(freshUser, destination, document.getElementById('loginForm') || document.getElementById('registerForm'));
             }
         }).catch(() => {});
     }
