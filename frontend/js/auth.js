@@ -20,17 +20,25 @@ function hasSwitchParam() {
     return params.has('switch') || params.has('logout') || params.has('force');
 }
 
-// Admin whitelist (comma-separated) can be set globally; default includes primary admin email
+// Role whitelists (comma-separated)
 const ADMIN_EMAIL_WHITELIST = (window.ECOWALLET_ADMIN_EMAILS || 'almafwilg@gmail.com')
     .split(',')
     .map(e => e.trim().toLowerCase())
     .filter(Boolean);
 
-function applyAdminWhitelist(user) {
+// Include your agent emails here (default includes the known agent)
+const AGENT_EMAIL_WHITELIST = (window.ECOWALLET_AGENT_EMAILS || 'gomenochalmafwil@gmail.com')
+    .split(',')
+    .map(e => e.trim().toLowerCase())
+    .filter(Boolean);
+
+function applyRoleOverrides(user) {
     if (!user?.email) return user;
     const email = user.email.toLowerCase();
     if (ADMIN_EMAIL_WHITELIST.includes(email)) {
         user.role = 'admin';
+    } else if (AGENT_EMAIL_WHITELIST.includes(email)) {
+        user.role = 'agent';
     }
     return user;
 }
@@ -57,7 +65,7 @@ function applyAdminWhitelist(user) {
     const raw = localStorage.getItem('user');
     if (!raw) return;
     try {
-        const user = applyAdminWhitelist(JSON.parse(raw));
+        const user = applyRoleOverrides(JSON.parse(raw));
         const destination = user?.role === 'admin' ? 'admin.html' :
                             user?.role === 'agent' ? 'agent.html' : 'dashboard.html';
         showSessionMessage(user, destination, document.getElementById('loginForm') || document.getElementById('registerForm'));
@@ -190,7 +198,7 @@ async function handleLogin(e) {
 
         const result = await window.authAPI.login(email, password);
         
-        const user = applyAdminWhitelist(result.user || result);
+        const user = applyRoleOverrides(result.user || result);
         const role = user.user_metadata?.role || user.role || 'user';
         window.location.href = role === 'admin' ? 'admin.html' : role === 'agent' ? 'agent.html' : 'dashboard.html';
     } catch (error) {
@@ -323,7 +331,7 @@ window.checkAuth = async function(requiredRole = null) {
 
     // Always refresh from Supabase to pick up role changes (e.g., admin promotion)
     const refreshed = await window.syncSupabaseSession?.();
-    let user = applyAdminWhitelist(refreshed || getStoredUser());
+    let user = applyRoleOverrides(refreshed || getStoredUser());
 
     if (!user) {
         window.location.href = '/login.html';
