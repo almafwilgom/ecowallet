@@ -14,6 +14,12 @@ function isAuthPage() {
            path.endsWith('/login.html') || path.endsWith('/register.html');
 }
 
+function hasSwitchParam() {
+    if (typeof window === 'undefined') return false;
+    const params = new URLSearchParams(window.location.search || '');
+    return params.has('switch') || params.has('logout') || params.has('force');
+}
+
 // Admin whitelist (comma-separated) can be set globally; default includes primary admin email
 const ADMIN_EMAIL_WHITELIST = (window.ECOWALLET_ADMIN_EMAILS || 'almafwilg@gmail.com')
     .split(',')
@@ -35,10 +41,16 @@ function applyAdminWhitelist(user) {
     if (!isAuthPage()) return;
 
     // Allow manual override to clear cached session: ?switch=1 or ?logout=1 or ?force=1
-    const params = new URLSearchParams(window.location.search || '');
-    const forceLogin = params.has('switch') || params.has('logout') || params.has('force');
-    if (forceLogin) {
+    if (hasSwitchParam()) {
         localStorage.removeItem('user');
+        // Also sign out Supabase session to prevent silent redirect
+        (async () => {
+            try {
+                const { createClient } = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');
+                const client = createClient(FALLBACK_SUPABASE_URL, FALLBACK_SUPABASE_KEY);
+                await client.auth.signOut();
+            } catch (_) {}
+        })();
         return;
     }
 
