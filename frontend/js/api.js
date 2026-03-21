@@ -61,7 +61,7 @@ async function getClient() {
 
 // Fetch profile from public.users, supporting either `id` (uuid) or `auth_id` schemas.
 async function fetchUserProfile(client, authUserId) {
-    const columns = 'id, auth_id, role, name, state, email, phone, address';
+    const columns = 'id, role, name, state, email, phone, address';
 
     // First try `id` = auth user id (current schema)
     try {
