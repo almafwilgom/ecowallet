@@ -30,8 +30,8 @@ async function loadAgentDashboard() {
         // DEFENSIVE FIX: Ensure properties exist even if data.stats is an empty object
         const stats = data.stats || {};
         const totalCollections = stats.total_collections || 0;
-        const totalWeight = stats.total_weight || 0;
-        const totalCO2 = stats.total_co2 || 0;
+        const totalWeight = stats.total_weight || stats.total_weight_kg || 0;
+        const totalCO2 = stats.total_co2 || stats.total_co2_saved || 0;
 
         // Update UI safely
         const collectionsEl = document.getElementById('totalCollections');
@@ -56,13 +56,13 @@ async function loadPendingSubmissions() {
     if (!tbody) return;
 
     try {
-        const data = await agentAPI.getPendingCollections();
-        if (!data.collections || data.collections.length === 0) {
+        const data = await agentAPI.getPendingSubmissions();
+        if (!data.submissions || data.submissions.length === 0) {
             tbody.innerHTML = '<tr><td colspan="7" style="text-align: center;">No pending submissions</td></tr>';
             return;
         }
 
-        tbody.innerHTML = data.collections.map(col => `
+        tbody.innerHTML = data.submissions.map(col => `
             <tr>
                 <td>${col.user_name || 'User'}</td>
                 <td>${col.material_type}</td>
@@ -84,13 +84,13 @@ async function loadCollectedHistory() {
     if (!tbody) return;
 
     try {
-        const data = await agentAPI.getRecentCollections();
-        if (!data.collections || data.collections.length === 0) {
+        const data = await agentAPI.getCollectedSubmissions();
+        if (!data.submissions || data.submissions.length === 0) {
             tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">No history found</td></tr>';
             return;
         }
 
-        tbody.innerHTML = data.collections.map(col => `
+        tbody.innerHTML = data.submissions.map(col => `
             <tr>
                 <td>${col.user_name || 'User'}</td>
                 <td>${col.material_type}</td>
