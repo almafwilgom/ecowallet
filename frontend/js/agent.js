@@ -6,23 +6,20 @@
 
 document.addEventListener('DOMContentLoaded', async () => {
     try {
-        const profile = await window.syncSupabaseSession();
-        
-        if (!profile || profile.role !== 'agent') {
-            window.location.href = '/login.html';
-            return;
-        }
+        const user = await (window.checkAuth ? window.checkAuth('agent') : null);
+        if (!user) return;
 
         if (typeof setupLogout === 'function') {
             setupLogout();
         }
 
         const userNameEl = document.getElementById('userName');
-        if (userNameEl) userNameEl.textContent = profile.name || 'Agent';
+        if (userNameEl) userNameEl.textContent = user.name || 'Agent';
 
         await loadAgentDashboard();
     } catch (error) {
         console.error('Initialization failed:', error);
+        window.location.href = '/login.html';
     }
 });
 
