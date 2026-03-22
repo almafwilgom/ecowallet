@@ -215,6 +215,21 @@
         </div>
     </main>
 
+    <!-- Unified Modal -->
+    <div id="modalOverlay" class="modal-overlay" aria-hidden="true">
+        <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modalTitle" aria-describedby="modalBody">
+            <button type="button" class="modal-close" id="modalCloseBtn" aria-label="Close">&times;</button>
+            <div class="modal-badge" id="modalBadge">Notice</div>
+            <h3 class="modal-title" id="modalTitle">Action</h3>
+            <p class="modal-body" id="modalBody">Proceed with this action?</p>
+            <div class="modal-amount" id="modalAmount" style="display:none;"></div>
+            <div class="modal-actions">
+                <button type="button" class="btn btn-ghost btn-pill" id="modalSecondaryBtn" style="display:none;">Cancel</button>
+                <button type="button" class="btn btn-primary btn-pill" id="modalPrimaryBtn">OK</button>
+            </div>
+        </div>
+    </div>
+
     <script src="js/config.js"></script>
     <script type="module" src="js/api.js"></script>
     <script type="module" src="js/auth.js"></script>
