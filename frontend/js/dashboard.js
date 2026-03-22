@@ -3,6 +3,63 @@ let recyclingChart = null;
 let materialChart = null;
 let co2Chart = null;
 
+const payoutRates = {
+    PET: 450,
+    HDPE: 420,
+    Aluminum: 1200,
+    Paper: 150
+};
+
+function estimatePayout(material, weight) {
+    const rate = payoutRates[material] || 0;
+    return Number(weight || 0) * rate;
+}
+
+// Modal helpers
+const modalOverlay = document.getElementById('modalOverlay');
+const modalTitleEl = document.getElementById('modalTitle');
+const modalBodyEl = document.getElementById('modalBody');
+const modalBadgeEl = document.getElementById('modalBadge');
+const modalAmountEl = document.getElementById('modalAmount');
+const modalCloseBtn = document.getElementById('modalCloseBtn');
+const modalActionBtn = document.getElementById('modalActionBtn');
+
+function showModal({ title, body, amount, tone = 'success' }) {
+    if (!modalOverlay) return;
+    modalTitleEl.textContent = title;
+    modalBodyEl.textContent = body;
+    modalBadgeEl.textContent = tone === 'error' ? 'Notice' : 'Success';
+    modalBadgeEl.classList.toggle('error', tone === 'error');
+
+    if (typeof amount === 'number' && !Number.isNaN(amount)) {
+        modalAmountEl.textContent = formatCurrency(amount);
+        modalAmountEl.style.display = 'inline-block';
+    } else {
+        modalAmountEl.style.display = 'none';
+    }
+
+    modalOverlay.classList.add('open');
+    modalOverlay.setAttribute('aria-hidden', 'false');
+    document.body.style.overflow = 'hidden';
+}
+
+function hideModal() {
+    if (!modalOverlay) return;
+    modalOverlay.classList.remove('open');
+    modalOverlay.setAttribute('aria-hidden', 'true');
+    document.body.style.overflow = '';
+}
+
+[modalCloseBtn, modalActionBtn].forEach(btn => btn && btn.addEventListener('click', hideModal));
+if (modalOverlay) {
+    modalOverlay.addEventListener('click', (e) => {
+        if (e.target === modalOverlay) hideModal();
+    });
+}
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') hideModal();
+});
+
 document.addEventListener('DOMContentLoaded', async () => {
     const user = await (window.checkAuth ? window.checkAuth('user') : null);
     if (typeof window.setupLogout === 'function') {
@@ -337,11 +394,18 @@ async function handleWasteSubmission(e) {
         });
 
         const rewardMessage = result.reward?.message || result.message || 'Waste submitted';
-        const rewardAmount = result.reward?.amount ?? result.submission?.payout ?? 0;
+        const rewardAmount = result.reward?.amount ?? result.submission?.payout ?? estimatePayout(material_type, weight_kg);
 
         msgDiv.className = 'form-message success';
-        msgDiv.innerHTML = `Success: ${rewardMessage}<br>Earned: ${formatCurrency(rewardAmount)}`;
+        msgDiv.innerHTML = `Success: ${rewardMessage}. Funds post after an agent marks it collected.<br>Est. Payout: ${formatCurrency(rewardAmount)}`;
         msgDiv.style.display = 'block';
+
+        showModal({
+            title: 'Submission Received',
+            body: 'Congratulations! Your submission is logged. Your payout will be added once an agent confirms collection.',
+            amount: rewardAmount,
+            tone: 'success'
+        });
 
         e.target.reset();
         setTimeout(() => {
@@ -394,6 +458,22 @@ async function handleWithdrawal(e) {
             throw new Error('Account name is required');
         }
 
+        // Verify available balance before submitting
+        const { wallet } = await walletAPI.getBalance();
+        const availableBalance = Number(wallet?.balance || 0);
+        if (amount > availableBalance) {
+            showModal({
+                title: 'Insufficient Balance',
+                body: `You have ${formatCurrency(availableBalance)} available. Enter a lower amount or wait for more collections to be confirmed.`,
+                amount: availableBalance,
+                tone: 'error'
+            });
+            msgDiv.className = 'form-message error';
+            msgDiv.textContent = 'Insufficient balance for this withdrawal.';
+            msgDiv.style.display = 'block';
+            return;
+        }
+
         const result = await walletAPI.requestWithdrawal({
             amount,
             method,
@@ -407,6 +487,14 @@ async function handleWithdrawal(e) {
         msgDiv.className = 'form-message success';
         msgDiv.innerHTML = `Success: Withdrawal request submitted.<br>Amount: ${formatCurrency(result.withdrawal.amount)}<br>Status: ${result.withdrawal.status}`;
         msgDiv.style.display = 'block';
+
+        const methodLabel = method === 'bank_transfer' ? 'bank transfer' : (method === 'airtime' ? 'airtime' : 'mobile data');
+        showModal({
+            title: 'Withdrawal Submitted',
+            body: `We received your ${methodLabel} request. We will process it shortly.`,
+            amount: result.withdrawal.amount,
+            tone: 'success'
+        });
 
         e.target.reset();
         setTimeout(() => {

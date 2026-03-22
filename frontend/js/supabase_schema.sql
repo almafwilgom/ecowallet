@@ -139,19 +139,31 @@ create trigger before_waste_insert
   before insert on public.waste_submissions
   for each row execute function calculate_waste_rewards();
 
--- Update Wallet on Submission
-create or replace function update_wallet_on_submission()
-returns trigger as $$
+-- Update Wallet on Collection
+drop function if exists update_wallet_on_submission();
+drop trigger if exists after_waste_insert_wallet on public.waste_submissions;
+drop trigger if exists after_waste_collected_wallet on public.waste_submissions;
+
+create or replace function update_wallet_on_collection()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
 begin
-  update public.wallets set balance = balance + new.payout where user_id = new.user_id;
+  -- Credit wallet only when status changes to collected
+  if new.status = 'collected' and coalesce(old.status, '') <> 'collected' then
+    update public.wallets
+      set balance = balance + coalesce(new.payout, 0)
+      where user_id = new.user_id;
+  end if;
   return new;
 end;
-$$ language plpgsql;
+$$;
 
-drop trigger if exists after_waste_insert_wallet on public.waste_submissions;
-create trigger after_waste_insert_wallet
-  after insert on public.waste_submissions
-  for each row execute function update_wallet_on_submission();
+create trigger after_waste_collected_wallet
+  after update on public.waste_submissions
+  for each row execute function update_wallet_on_collection();
 
 -- RPC: Get Agent Stats
 drop function if exists get_agent_stats();
