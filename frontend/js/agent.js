@@ -58,13 +58,14 @@ async function loadPendingSubmissions() {
     try {
         const data = await agentAPI.getPendingSubmissions();
         if (!data.submissions || data.submissions.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="7" style="text-align: center;">No pending submissions</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="8" style="text-align: center;">No pending submissions</td></tr>';
             return;
         }
 
         tbody.innerHTML = data.submissions.map(col => `
             <tr>
                 <td>${col.user_name || 'User'}</td>
+                <td>${col.user_phone || '—'}</td>
                 <td>${col.material_type}</td>
                 <td>${formatWeight(col.weight_kg || 0)}</td>
                 <td>${col.location || 'N/A'}</td>
@@ -75,7 +76,7 @@ async function loadPendingSubmissions() {
         `).join('');
     } catch (error) {
         console.error('Failed to load pending submissions:', error);
-        tbody.innerHTML = '<tr><td colspan="7">Error loading data</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="8">Error loading data</td></tr>';
     }
 }
 

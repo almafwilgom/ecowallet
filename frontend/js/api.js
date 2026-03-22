@@ -165,13 +165,14 @@ window.agentAPI = {
         const client = await getClient();
         const { data, error } = await client
             .from('waste_submissions')
-            .select('id, material_type, weight_kg, location, payout, created_at, user_id, users:users!waste_submissions_user_id_fkey(name)')
+            .select('id, material_type, weight_kg, location, payout, created_at, user_id, users:users!waste_submissions_user_id_fkey(name, phone)')
             .eq('status', 'pending')
             .order('created_at', { ascending: true });
         if (error) throw error;
         const mapped = (data || []).map(row => ({
             ...row,
-            user_name: row.users?.name || 'Unknown'
+            user_name: row.users?.name || 'Unknown',
+            user_phone: row.users?.phone || null
         }));
         return { submissions: mapped };
     },
@@ -180,7 +181,7 @@ window.agentAPI = {
         const userId = getCurrentUserId();
         const { data, error } = await client
             .from('waste_submissions')
-            .select('id, material_type, weight_kg, payout, co2_saved, updated_at, user_id, agent_id, users:users!waste_submissions_user_id_fkey(name)')
+            .select('id, material_type, weight_kg, payout, co2_saved, updated_at, user_id, agent_id, users:users!waste_submissions_user_id_fkey(name, phone)')
             .eq('status', 'collected')
             .eq('agent_id', userId)
             .order('updated_at', { ascending: false })
@@ -188,7 +189,8 @@ window.agentAPI = {
         if (error) throw error;
         const mapped = (data || []).map(row => ({
             ...row,
-            user_name: row.users?.name || 'Unknown'
+            user_name: row.users?.name || 'Unknown',
+            user_phone: row.users?.phone || null
         }));
         return { submissions: mapped };
     },

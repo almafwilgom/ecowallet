@@ -9,6 +9,8 @@ create table public.users (
   id uuid references auth.users not null primary key,
   email text,
   name text,
+  phone text,
+  address text,
   state text,
   role text default 'user' check (role in ('user', 'agent', 'admin')),
   deleted_at timestamp with time zone,
@@ -101,11 +103,13 @@ select
 create or replace function public.handle_new_user()
 returns trigger as $$
 begin
-  insert into public.users (id, email, name, role, state)
+  insert into public.users (id, email, name, phone, address, role, state)
   values (
     new.id,
     new.email,
     new.raw_user_meta_data->>'name',
+    new.raw_user_meta_data->>'phone',
+    new.raw_user_meta_data->>'address',
     coalesce(new.raw_user_meta_data->>'role', 'user'),
     new.raw_user_meta_data->>'state'
   );
