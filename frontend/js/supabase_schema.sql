@@ -169,6 +169,35 @@ create trigger after_waste_collected_wallet
   after update on public.waste_submissions
   for each row execute function update_wallet_on_collection();
 
+-- Deduct Wallet on Withdrawal Approval
+drop function if exists process_withdrawal_status();
+drop trigger if exists after_withdrawal_status_change on public.withdrawal_requests;
+
+create or replace function process_withdrawal_status()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if new.status = 'approved' and coalesce(old.status, '') <> 'approved' then
+    -- ensure sufficient funds at approval time
+    perform 1 from public.wallets where user_id = new.user_id and balance >= new.amount;
+    if not found then
+      raise exception 'Insufficient wallet balance for approval';
+    end if;
+    update public.wallets
+      set balance = balance - new.amount
+      where user_id = new.user_id;
+  end if;
+  return new;
+end;
+$$;
+
+create trigger after_withdrawal_status_change
+  after update on public.withdrawal_requests
+  for each row execute function process_withdrawal_status();
+
 -- RPC: Get Agent Stats
 drop function if exists get_agent_stats();
 create or replace function get_agent_stats()
